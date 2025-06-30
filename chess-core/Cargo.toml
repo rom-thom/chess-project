@@ -1,0 +1,9 @@
+[package]
+name = "chess-core"
+version = "0.1.0"
+edition = "2024"
+
+
+[dependencies]
+num_enum = "0.5"
+rand = "0.9.1"        # latest release as of June 2025

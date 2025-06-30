@@ -1,0 +1,9 @@
+
+
+[workspace]
+members = [
+  "chess-core",
+  "engine",
+  "ui",
+]
+
