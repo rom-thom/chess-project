@@ -50,6 +50,16 @@ impl Position {
     }
 
 
+    pub fn expand_move(&self, from: Square, to: Square, promo: Option<Piece>)->BitMove{
+        let mut move_type = match promo {
+            Some(piece) => MoveType::Promotion(piece),
+            None => MoveType::Quiet
+        };
+        let is_capture =  from.to_bitboard().intersects(self.current.bitboards.all_occupancy);
+
+
+        BitMove::new(from, to, is_capture, move_type)
+    }
     
 }
 

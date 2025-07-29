@@ -4,7 +4,7 @@ use crate::moves::{BitMove, MoveList, MoveType};
 use crate::piece::{Piece, PieceIndex};
 use crate::square::{Square};
 use crate::kastling::{Castling, CastlingSide, Imposter};
-use crate::attack;
+use crate::{attack, position};
 use crate::bitboard_consts::{self, CORNERS};
 use crate::position::{Color, Position};
 
@@ -125,7 +125,7 @@ impl Position{
                             move_list.add(BitMove::new(
                                 start_square,
                                 target_square,
-                                is_capture,
+                                false,
                                 MoveType::Castling(Imposter::from_castling_side(side)),
                             ));
                         }
@@ -141,7 +141,7 @@ impl Position{
     
 
     // Changes the position according to the move  // TODO find a beter way, i just did what my first instingt was
-    pub fn make_move(&mut self, mov: BitMove){// TODO Mailbox must be updated here when implemented
+    pub fn make_move(&mut self, mov: &BitMove){// TODO Mailbox must be updated here when implemented
 
         self.history.push(self.current);
 
@@ -165,7 +165,8 @@ impl Position{
         let mut captured_piece = None;
         if mov.is_capture(){
             if !mov.is_en_passant(){
-                captured_piece = Some(self.current.bitboards.piece_on_square(end_square).expect("didnt find captured piece on square in make_move") )
+
+                captured_piece = Some(self.current.bitboards.piece_on_square(end_square).expect("didnt find captured piece on square in make_move"));
             }
             else{
                 captured_piece = match color {
@@ -301,22 +302,41 @@ impl Position{
     }
 
     // TODO I should swap this out for faster check for wether it is ilegal or not
-    // checks if the move generates a check and thus is legal or not
+    // checks if the move generates a check and thus is legal or not //TODO (it also finds wether it moves trough check)
     pub fn makes_self_check(&self, mov: BitMove) -> bool{
         let mut temp_pos = self.clone();
-        temp_pos.make_move(mov);
+        let moving_color = temp_pos.current.side_to_move;
+        temp_pos.make_move(&mov);
 
         let mut move_list = MoveList::new_empty();
 
-        let self_king = match !temp_pos.current.side_to_move {
+        let self_king = match moving_color {
             Color::Black => PieceIndex::BlackKing,
             Color::White => PieceIndex::WhiteKing
         };
 
+        // Finds the path the king has to move trough. Used for finding wether opponent attacks that square
+        let kastle_path_opt = mov.get_castle_side().map(|castle_side|{
+            match (moving_color, castle_side) {
+                (Color::White, Imposter::King)  => bitboard_consts::CASTLE_PATH_WHITE_KINGSIDE,
+                (Color::White, Imposter::Queen) => bitboard_consts::CASTLE_PATH_WHITE_QUEENSIDE,
+                (Color::Black, Imposter::King)  => bitboard_consts::CASTLE_PATH_BLACK_KINGSIDE,
+                (Color::Black, Imposter::Queen) => bitboard_consts::CASTLE_PATH_BLACK_QUEENSIDE,
+            }
+        });
+
+        // Finds wether the opponent can capture the king in the next move, or wether you move trough attack in castling
         temp_pos.pseudo_legal(&mut move_list);
-        for moves in move_list.iter(){
-            if temp_pos.current.bitboards.piece_on_square(moves.get_end_square()) == Some(self_king){
+        for oponents_move in move_list.iter(){
+            let target = oponents_move.get_end_square();
+
+            if temp_pos.current.bitboards.piece_on_square(target) == Some(self_king){
                 return true
+            }
+            if let Some(castling_path) = kastle_path_opt{
+                if castling_path.intersects(target.to_bitboard()){
+                    return true;
+                }
             }
         }
         false
@@ -344,6 +364,15 @@ impl Position{
     }
 
 
+    pub fn undo_move(&mut self) -> Result<(), &'static str> {
+
+        if let Some(previous) = self.history.pop(){
+            self.current = previous;
+            return Ok(());
+        }
+        Err("There where no previous snapshot in the position history, aka you haven't done a move yet, there are no move to undo you idiot")
+    }
+
 
 }
 
@@ -370,7 +399,7 @@ mod test{
         for i in 0..50{
             let moves = position.legal_moves();
             let nr = rng.random_range(0..moves.size());
-            position.make_move(*moves.get(nr).unwrap());
+            position.make_move(moves.get(nr).unwrap());
             dbg!(position.current.bitboards.all_occupancy);
         }
 

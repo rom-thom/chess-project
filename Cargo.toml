@@ -4,6 +4,6 @@
 members = [
   "chess-core",
   "engine",
-  "ui",
+  "lichess_connection",
 ]
 

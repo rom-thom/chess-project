@@ -3,7 +3,6 @@ use std::fs::OpenOptions;
 use std::{iter, result};
 
 use crate::kastling::{Castling, CastlingSide, Imposter};
-use crate::{moves, square};
 use crate::square::Square;
 use crate::board::{Bitboards};
 use crate::piece::{PieceIndex, Piece};
@@ -72,10 +71,7 @@ impl BitMove{
 
 
 
-
-
-
-// TODO Make this a u16 representation of a move for speeeed: FFFFFFTTTTTTCMMM  F = From, T = To, C=Capture, M = Move-flags(Quiet, (doubepawn push and en_passant in one), Promo*4, kastle * 2)
+// Human readable version of BitMove
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Move{
     from: Square,

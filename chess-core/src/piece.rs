@@ -26,6 +26,18 @@ impl Piece{
 
         }
     }
+
+    pub fn from_char(c: char)->Option<Piece>{
+        match c.to_ascii_lowercase() {
+            'p' => Some(Piece::Pawn),
+            'n' => Some(Piece::Knight),
+            'b' => Some(Piece::Bishop),
+            'r' => Some(Piece::Rook),
+            'q' => Some(Piece::Queen),
+            'k' => Some(Piece::King),
+            _ => None
+        }
+    }
 }
 
 

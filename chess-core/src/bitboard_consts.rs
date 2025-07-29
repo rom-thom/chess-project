@@ -57,7 +57,22 @@ use crate::board::Bitboard;
     pub const CORNERS: Bitboard = Bitboard::new_const((1 <<  0) | (1 <<  7) | (1 << 56) | (1 << 63));
     pub const CENTER_4: Bitboard = Bitboard::new_const(0x0000_0018_1800_0000); // The four central squares
     pub const BORDER: Bitboard = Bitboard::new_const(0xFF81_8181_8181_81FF); // The entire border of the board (upper, lower, and sides)
-    pub const KINGS: Bitboard = Bitboard::new_const(0x1000000000000010); // only the king squares
+
+    // King spesific
+        pub const KINGS: Bitboard = Bitboard::new_const(0x1000000000000010); // only the king squares
+
+        // Squares that must be empty for castling
+            pub const CASTLE_EMPTY_WHITE_KINGSIDE: Bitboard = Bitboard::new_const((1 << 5) | (1 << 6));
+            pub const CASTLE_EMPTY_WHITE_QUEENSIDE: Bitboard = Bitboard::new_const((1 << 1) | (1 << 2) | (1 << 3));
+            pub const CASTLE_EMPTY_BLACK_KINGSIDE: Bitboard = Bitboard::new_const((1 << 61) | (1 << 62));
+            pub const CASTLE_EMPTY_BLACK_QUEENSIDE: Bitboard = Bitboard::new_const((1 << 57) | (1 << 58) | (1 << 59));
+        // Squares the king moves through or to during kastling (must not be under attack)
+            pub const CASTLE_PATH_WHITE_KINGSIDE: Bitboard = Bitboard::new_const((1 << 4) | (1 << 5) | (1 << 6));
+            pub const CASTLE_PATH_WHITE_QUEENSIDE: Bitboard = Bitboard::new_const((1 << 4) | (1 << 3) | (1 << 2));
+            pub const CASTLE_PATH_BLACK_KINGSIDE: Bitboard = Bitboard::new_const((1 << 60) | (1 << 61) | (1 << 62));
+            pub const CASTLE_PATH_BLACK_QUEENSIDE: Bitboard = Bitboard::new_const((1 << 60) | (1 << 59) | (1 << 58));
+
+
 
 
 

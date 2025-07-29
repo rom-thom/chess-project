@@ -8,6 +8,7 @@ pub mod piece;
 pub mod moves;
 pub mod bitboard_consts;
 pub mod movegen;
+pub mod test_move_count;
 
 #[cfg(test)]
 mod tests {

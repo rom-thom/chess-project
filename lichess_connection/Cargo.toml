@@ -7,5 +7,4 @@ edition = "2024"
 chess-core = { path = "../chess-core" }
 engine = { path = "../engine"}
 
-eframe = "0.23"
-egui = "0.23"
+dotenv = "0.15.0"
