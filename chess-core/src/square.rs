@@ -95,8 +95,8 @@ impl Square {
     }
 
     #[inline]
-    pub fn to_coord(&self)->(usize, usize){
-        Bitboard::index_to_coord(self.index())
+    pub fn to_coord(&self)->(usize, usize){ // the first index is row, and second is col
+        Bitboard::index_to_coord(self.index()) 
     }
 
     #[inline]

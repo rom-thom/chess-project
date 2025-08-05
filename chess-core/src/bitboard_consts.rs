@@ -60,6 +60,9 @@ use crate::board::Bitboard;
 
     // King spesific
         pub const KINGS: Bitboard = Bitboard::new_const(0x1000000000000010); // only the king squares
+        pub const WHITE_KING: Bitboard = Bitboard::new_const(1 << 4);
+        pub const BLACK_KING: Bitboard = Bitboard::new_const(1 << 60);
+
 
         // Squares that must be empty for castling
             pub const CASTLE_EMPTY_WHITE_KINGSIDE: Bitboard = Bitboard::new_const((1 << 5) | (1 << 6));

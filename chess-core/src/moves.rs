@@ -146,7 +146,7 @@ pub enum MoveType {
     #[default]
     Quiet,
     Promotion(Piece),
-    EnPassant,
+    EnPassant, // this also covers making an en passant aka going to squares forword
     Castling(Imposter)
 
 }

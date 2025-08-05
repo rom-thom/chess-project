@@ -28,7 +28,7 @@ impl Imposter {
 }
 
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Castling{
     pub rights: u8,
 }
@@ -44,6 +44,26 @@ pub struct Castling{
     }
     pub fn can_castle(&self, castling_side: CastlingSide) -> bool{
         (self.rights & castling_side as u8) == castling_side as u8
+    }
+ }
+
+
+ impl std::fmt::Debug for Castling{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut output= String::new();
+        if self.can_castle(CastlingSide::WK){
+            output += "WK ";
+        }
+        if self.can_castle(CastlingSide::WQ){
+            output += "WQ ";
+        }
+        if self.can_castle(CastlingSide::BK){
+            output += "BK ";
+        }
+        if self.can_castle(CastlingSide::BQ){
+            output += "BQ ";
+        }
+        write!(f, "{}", output)
     }
  }
 

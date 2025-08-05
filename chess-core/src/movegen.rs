@@ -302,7 +302,7 @@ impl Position{
     }
 
     // TODO I should swap this out for faster check for wether it is ilegal or not
-    // checks if the move generates a check and thus is legal or not //TODO (it also finds wether it moves trough check)
+    // checks if the move generates a check and thus is legal or not (it also finds wether it castles trough check or // TODO away from it)
     pub fn makes_self_check(&self, mov: BitMove) -> bool{
         let mut temp_pos = self.clone();
         let moving_color = temp_pos.current.side_to_move;
@@ -315,6 +315,7 @@ impl Position{
             Color::White => PieceIndex::WhiteKing
         };
 
+
         // Finds the path the king has to move trough. Used for finding wether opponent attacks that square
         let kastle_path_opt = mov.get_castle_side().map(|castle_side|{
             match (moving_color, castle_side) {
@@ -323,7 +324,7 @@ impl Position{
                 (Color::Black, Imposter::King)  => bitboard_consts::CASTLE_PATH_BLACK_KINGSIDE,
                 (Color::Black, Imposter::Queen) => bitboard_consts::CASTLE_PATH_BLACK_QUEENSIDE,
             }
-        });
+        }); 
 
         // Finds wether the opponent can capture the king in the next move, or wether you move trough attack in castling
         temp_pos.pseudo_legal(&mut move_list);
@@ -333,12 +334,38 @@ impl Position{
             if temp_pos.current.bitboards.piece_on_square(target) == Some(self_king){
                 return true
             }
+
             if let Some(castling_path) = kastle_path_opt{
-                if castling_path.intersects(target.to_bitboard()){
+                if castling_path.intersects(target.to_bitboard()){ 
                     return true;
                 }
             }
         }
+
+        // I have to loop trough all the posible opponents moves as if hadnt moved yet because else i ignore the fact that the pawn looses the ability to attack the king if it kastles away, but it shouldnt e able to castle away when the pawn is attacking.
+        if let Err(e) = temp_pos.undo_move(){
+            panic!("temp_pos should have just made a move, so it shouldnt be an errror here, in makes_self_check: {}", e);
+        }
+        match mov.get_castle_side() {
+            None => {},
+            Some(_)=>{
+                move_list.clear();
+                temp_pos.current.side_to_move = !temp_pos.current.side_to_move; // i have to flip the colors to make the oponent be able to see every square (to check for kastling edgecase)
+                temp_pos.pseudo_legal(&mut move_list);
+                for oponents_move in move_list.iter(){
+                    let target = oponents_move.get_end_square();
+                    let self_king_pos = match moving_color {
+                        Color::Black => bitboard_consts::BLACK_KING,
+                        Color::White => bitboard_consts::WHITE_KING
+                    };
+                    if self_king_pos.intersects(target.to_bitboard()){
+                        return true;
+                    }
+                }
+            }
+
+        }
+        
         false
     }
 

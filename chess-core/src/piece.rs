@@ -124,5 +124,10 @@ impl PieceIndex {
         }  
     }
 
+    pub fn from_index(index: usize) -> Option<PieceIndex> {
+        PieceIndex::try_from(index).ok()
+    }
+
+
 }
 
