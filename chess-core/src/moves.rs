@@ -128,6 +128,7 @@ impl MoveList{
         None
     }
 
+    #[inline]
     pub fn size(&self) -> usize{
         self.len
     }
