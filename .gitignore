@@ -1,3 +1,4 @@
 /target/
 /lichess_connection/src/.env
+/.env/
 
