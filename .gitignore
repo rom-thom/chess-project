@@ -1,4 +1,3 @@
 /target/
-/lichess_connection/src/.env
+# ignore any file named .env, anywhere in the repo
 **/.env
-
