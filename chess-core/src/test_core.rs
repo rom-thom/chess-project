@@ -1,22 +1,22 @@
 
 
-use crate::{moves::{BitMove, Move, MoveList}, position::{self, Color, Position}};
+use crate::{movegen::MoveGen, moves::{BitMove, Move, MoveList}, position::{self, Color, Position}};
 use std::io::{self, Write};
 use rand::Rng;
 
 
-fn _perft(board: &mut Position, depth: u32) -> u64 {
+fn _perft(move_gen: &mut MoveGen, depth: u32) -> u64 {
     if depth == 0 {
         return 1;
     }
 
-    let moves = board.legal_moves();
+    let moves = move_gen.legal_moves();
     let mut nodes = 0;
 
     for m in moves.iter() {
-        board.make_move(m);
-        nodes += _perft(board, depth - 1);
-        if let Err(e) = board.undo_move(){
+        move_gen.pos.make_move(m);
+        nodes += _perft(move_gen, depth - 1);
+        if let Err(e) = move_gen.pos.undo_move(){
             panic!("can't undo move... {}", e);
         }
     }
@@ -26,7 +26,7 @@ fn _perft(board: &mut Position, depth: u32) -> u64 {
 
 // This must be runn using this comand in the terminal "cargo test test_count -- --nocapture"
 fn play_random_engine(starting_fen_string: Option<&str>, your_color: Color){
-    let mut position = Position::new(starting_fen_string);
+    let mut move_gen = MoveGen::from_fen(starting_fen_string);
     let mut user_move_string = String::new();
     let mut user_move_bitmove;
 
@@ -36,8 +36,8 @@ fn play_random_engine(starting_fen_string: Option<&str>, your_color: Color){
             print!("You are white, play a move in the format startsquare endsquare potential promotion (example: e2e4 or later e7f8r for promoting to rook): ");
             io::stdout().flush().expect("Failed to flush stdout");
             io::stdin().read_line(&mut user_move_string).expect("Failed to read line");
-            user_move_bitmove = position.stringmove_to_bit_move(&user_move_string.trim()).expect("First move was wrong/invalid start the program again, but now with a valid move");
-            position.make_move(&user_move_bitmove);  
+            user_move_bitmove = move_gen.stringmove_to_bitmove(&user_move_string.trim()).expect("First move was wrong/invalid start the program again, but now with a valid move");
+            move_gen.pos.make_move(&user_move_bitmove);  
         }
         Color::Black =>{
             println!("You are black, so i start, after that, play a move in the format startsquare endsquare potential promotion (example: e2e4 or later e7f8r for promoting to rook): ");
@@ -50,16 +50,16 @@ fn play_random_engine(starting_fen_string: Option<&str>, your_color: Color){
     let mut move_index;
     loop{
         legal_moves.clear();
-        position.fill_legal(&mut legal_moves);
+        move_gen.fill_legal(&mut legal_moves);
         if legal_moves.size() == 0{
             println!("I have no legal moves, so you determine if you win or it is remis/pat/draw, or just that the chess engine is broken (but that is unposible. After all i did make it)");
             break;
         }
         move_index = rng.random_range(0..legal_moves.size());
 
-        position.make_move(legal_moves.get(move_index).expect("the random generator, generated a number that is outside the size, which shouldnt happen, but here we are, in this cruel wourld"));
+        move_gen.pos.make_move(legal_moves.get(move_index).expect("the random generator, generated a number that is outside the size, which shouldnt happen, but here we are, in this cruel wourld"));
 
-        print!("{:?}", position.current);
+        print!("{:?}", move_gen.pos.current);
 
         'wrong_input_move_loop: loop{
             print!("Your turn what move do you want to play: ");
@@ -67,7 +67,7 @@ fn play_random_engine(starting_fen_string: Option<&str>, your_color: Color){
             io::stdout().flush().expect("Failed to flush stdout");
             io::stdin().read_line(&mut user_move_string).expect("Failed to read line");
 
-            match position.stringmove_to_bit_move(&user_move_string.trim()) {
+            match move_gen.stringmove_to_bitmove(&user_move_string.trim()) {
                 Ok(user_move) =>{
                     user_move_bitmove = user_move;
                     break 'wrong_input_move_loop
@@ -77,7 +77,7 @@ fn play_random_engine(starting_fen_string: Option<&str>, your_color: Color){
                 }
             }
         }
-        position.make_move(&user_move_bitmove);
+        move_gen.pos.make_move(&user_move_bitmove);
     }
 }
 

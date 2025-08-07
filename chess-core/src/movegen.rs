@@ -8,34 +8,33 @@ use crate::{attack, position};
 use crate::bitboard_consts::{self, CORNERS};
 use crate::position::{Color, Position};
 
-pub struct MoveGen<'a> { pos: &'a Position }
 
-impl<'a> MoveGen<'a> {
-  pub fn new(pos: &'a Position) -> Self { Self { pos } }
-  pub fn pseudo_legal(&self, move_list: &mut MoveList){
-
-  }
-  pub fn fill_legal(&self, move_list: &mut MoveList){}
-
-pub fn legal_moves(&self)->MoveList{
-    MoveList::new_empty()
-}
+#[derive(Clone, Debug, PartialEq)]
+pub struct MoveGen {
+    pub pos: Position,
 }
 
+impl MoveGen {
+    pub fn from_position(pos: Position) -> Self {
+        MoveGen { pos }
+    }
+
+    pub fn from_fen(fen: Option<&str>) -> Self {
+        MoveGen { pos: Position::new(fen) }
+    }
 
 
 
-impl Position{
     // Move generation (finds only the one for the color that currently is to move)
     // Finds all the pseudo legal (legal except for checks) moves in that position
-        // TODO loop through all pieces and their moves for the color to move and put them into MoveList
+    // TODO Split this into moves per piece, like fn generate_pawn_moves(&self, list: &mut MoveList); and so on for every piece
     pub fn pseudo_legal(&self, move_list: &mut MoveList){
-        let all_occ = self.current.bitboards.all_occupancy;
-        let color = self.current.side_to_move;
+            let all_occ = self.pos.current.bitboards.all_occupancy;
+        let color = self.pos.current.side_to_move;
         
-        let (my_occ, opponent_occ) = match self.current.side_to_move {
-            Color::White => (self.current.bitboards.white_occupancy, self.current.bitboards.black_occupancy),
-            Color::Black => (self.current.bitboards.black_occupancy, self.current.bitboards.white_occupancy)
+        let (my_occ, opponent_occ) = match self.pos.current.side_to_move {
+            Color::White => (self.pos.current.bitboards.white_occupancy, self.pos.current.bitboards.black_occupancy),
+            Color::Black => (self.pos.current.bitboards.black_occupancy, self.pos.current.bitboards.white_occupancy)
         };
 
         let mut my_occ_loop = my_occ; // represents the pieces that i haven't accesed yet
@@ -51,7 +50,7 @@ impl Position{
             let (start_row, start_col) = start_square.to_coord();
 
             // TODO This should probably be changed when implementing Mailbox (to only look for the color you are searching)
-            let piece_index = self.current.bitboards.piece_on_square(start_square)
+            let piece_index = self.pos.current.bitboards.piece_on_square(start_square)
                                                           .expect("Position::pseudo_legal does not find a piece where it should be, as the index should be where the piece is.");
 
             let piece = Piece::from_piece_index(&piece_index);
@@ -79,7 +78,7 @@ impl Position{
                     if start_col != end_col{
 
                         'diagonal_pawn: {
-                        match self.current.en_passant {
+                        match self.pos.current.en_passant {
                             Some(en_passant_square) => {
                                 if end_square == en_passant_square{
                                     is_capture = true;
@@ -136,7 +135,7 @@ impl Position{
                         };
 
                         if is_right_color
-                            && self.current.castling.can_castle(side)
+                            && self.pos.current.castling.can_castle(side)
                             && !all_occ.intersects(mask) // makes shure no piece is between rook and king
                         {
                             move_list.add(BitMove::new(
@@ -154,9 +153,145 @@ impl Position{
                 move_list.add(BitMove::new(start_square, end_square, is_capture, move_type));
                 }
             }
-        }
-    
+  }
 
+    // TODO I should swap this out for faster check for wether it is ilegal or not
+    // checks if the move generates a check and thus is legal or not (it also finds wether it castles trough check or away from it)
+    pub fn makes_self_check(&self, mov: BitMove) -> bool{
+        let mut temp_pos = self.clone();
+        let moving_color = temp_pos.pos.current.side_to_move;
+        temp_pos.pos.make_move(&mov);
+
+        let mut move_list = MoveList::new_empty();
+
+        let self_king = match moving_color {
+            Color::Black => PieceIndex::BlackKing,
+            Color::White => PieceIndex::WhiteKing
+        };
+
+
+        // Finds the path the king has to move trough. Used for finding wether opponent attacks that square
+        let kastle_path_opt = mov.get_castle_side().map(|castle_side|{
+            match (moving_color, castle_side) {
+                (Color::White, Imposter::King)  => bitboard_consts::CASTLE_PATH_WHITE_KINGSIDE,
+                (Color::White, Imposter::Queen) => bitboard_consts::CASTLE_PATH_WHITE_QUEENSIDE,
+                (Color::Black, Imposter::King)  => bitboard_consts::CASTLE_PATH_BLACK_KINGSIDE,
+                (Color::Black, Imposter::Queen) => bitboard_consts::CASTLE_PATH_BLACK_QUEENSIDE,
+            }
+        }); 
+
+        // Finds wether the opponent can capture the king in the next move, or wether you move trough attack in castling
+        temp_pos.pseudo_legal(&mut move_list);
+        for oponents_move in move_list.iter(){
+            let target = oponents_move.get_end_square();
+
+            if temp_pos.pos.current.bitboards.piece_on_square(target) == Some(self_king){
+                return true
+            }
+
+            if let Some(castling_path) = kastle_path_opt{
+                if castling_path.intersects(target.to_bitboard()){ 
+                    return true;
+                }
+            }
+        }
+
+        // I have to loop trough all the posible opponents moves as if hadnt moved yet because else i ignore the fact that the pawn looses the ability to attack the king if it kastles away, but it shouldnt e able to castle away when the pawn is attacking.
+        if let Err(e) = temp_pos.pos.undo_move(){
+            panic!("temp_pos should have just made a move, so it shouldnt be an errror here, in makes_self_check: {}", e);
+        }
+        match mov.get_castle_side() {
+            None => {},
+            Some(_)=>{
+                move_list.clear();
+                temp_pos.pos.current.side_to_move = !temp_pos.pos.current.side_to_move; // i have to flip the colors to make the oponent be able to see every square (to check for kastling edgecase)
+                temp_pos.pseudo_legal(&mut move_list);
+                for oponents_move in move_list.iter(){
+                    let target = oponents_move.get_end_square();
+                    let self_king_pos = match moving_color {
+                        Color::Black => bitboard_consts::BLACK_KING,
+                        Color::White => bitboard_consts::WHITE_KING
+                    };
+                    if self_king_pos.intersects(target.to_bitboard()){
+                        return true;
+                    }
+                }
+            }
+
+        }
+        
+        false
+    }
+
+    // TODO This should probably change to a faster way, but for now i am to lacy
+    pub fn fill_legal(&self, move_list: &mut MoveList){
+            move_list.clear();
+
+            let mut list = MoveList::new_empty();
+            self.pseudo_legal(&mut list);
+
+            for mov in list.iter(){
+                if !self.makes_self_check(*mov){
+                    move_list.add(*mov);
+                }
+            }
+        }
+
+    // !!! Only for debuging
+    pub fn legal_moves(&self)->MoveList{
+        let mut move_list = MoveList::new_empty();
+        self.fill_legal(&mut move_list);
+        move_list
+    }
+
+      // returns the move from  // ? it is very slow so dont use it for timecritical things
+    pub fn stringmove_to_bitmove(&self, moves_str: &str)->Result<BitMove, String>{
+        // This finds the last move as that is all we need for the engine, and if the string is weird, it removes mitaken extra spaces
+        let last_move = moves_str.split(" ")
+                                       .filter(|s| !s.is_empty())
+                                       .last()
+                                       .ok_or("No valid move was found in the moves_string when converting movestring to bitmove")?;
+
+        let chars: Vec<char> = last_move.chars().collect();
+        if chars.len() < 4{return Err("the last move was to short to have first and last move".to_string())}
+        if chars.len() > 5{return Err("the last move was to long to only have first and last move and promotion".to_string())}
+
+        let start_square_str = chars[0].to_string() + &chars[1].to_string();
+        let end_square_str = chars[2].to_string() +  &chars[3].to_string();
+        let start_square = (&start_square_str).parse()?;
+        let end_square = (&end_square_str).parse()?;
+
+        let mut promotion_piece = None;
+
+        if chars.len() == 5{
+            promotion_piece = Some(Piece::from_char(chars[4])
+                                         .ok_or(format!("The end of the last move was not convertable to a promotion piece. This is the move you gave ({})", chars.iter().collect::<String>()))?);
+        };
+        let candidate_move = self.pos.expand_move(start_square, end_square, promotion_piece);
+
+
+        // Compares to all the legal moves to see if it exist there
+        let is_legal = {
+            let mut lm = MoveList::new_empty(); // ? This is realy slow
+            self.fill_legal(&mut lm);
+            lm.iter().any(|m|(*m) == candidate_move)
+        };
+
+        if !is_legal{
+            return Err(String::from("That is an ilegal move"));
+        }
+
+
+        Ok(self.pos.expand_move(start_square, end_square, promotion_piece))
+    }
+
+}
+
+
+
+
+impl Position{
+    
     // Changes the position according to the move  // TODO find a beter way, i just did what my first instingt was
     pub fn make_move(&mut self, mov: &BitMove){// TODO Mailbox must be updated here when implemented
 
@@ -318,95 +453,6 @@ impl Position{
         
     }
 
-    // TODO I should swap this out for faster check for wether it is ilegal or not
-    // checks if the move generates a check and thus is legal or not (it also finds wether it castles trough check or // TODO away from it)
-    pub fn makes_self_check(&self, mov: BitMove) -> bool{
-        let mut temp_pos = self.clone();
-        let moving_color = temp_pos.current.side_to_move;
-        temp_pos.make_move(&mov);
-
-        let mut move_list = MoveList::new_empty();
-
-        let self_king = match moving_color {
-            Color::Black => PieceIndex::BlackKing,
-            Color::White => PieceIndex::WhiteKing
-        };
-
-
-        // Finds the path the king has to move trough. Used for finding wether opponent attacks that square
-        let kastle_path_opt = mov.get_castle_side().map(|castle_side|{
-            match (moving_color, castle_side) {
-                (Color::White, Imposter::King)  => bitboard_consts::CASTLE_PATH_WHITE_KINGSIDE,
-                (Color::White, Imposter::Queen) => bitboard_consts::CASTLE_PATH_WHITE_QUEENSIDE,
-                (Color::Black, Imposter::King)  => bitboard_consts::CASTLE_PATH_BLACK_KINGSIDE,
-                (Color::Black, Imposter::Queen) => bitboard_consts::CASTLE_PATH_BLACK_QUEENSIDE,
-            }
-        }); 
-
-        // Finds wether the opponent can capture the king in the next move, or wether you move trough attack in castling
-        temp_pos.pseudo_legal(&mut move_list);
-        for oponents_move in move_list.iter(){
-            let target = oponents_move.get_end_square();
-
-            if temp_pos.current.bitboards.piece_on_square(target) == Some(self_king){
-                return true
-            }
-
-            if let Some(castling_path) = kastle_path_opt{
-                if castling_path.intersects(target.to_bitboard()){ 
-                    return true;
-                }
-            }
-        }
-
-        // I have to loop trough all the posible opponents moves as if hadnt moved yet because else i ignore the fact that the pawn looses the ability to attack the king if it kastles away, but it shouldnt e able to castle away when the pawn is attacking.
-        if let Err(e) = temp_pos.undo_move(){
-            panic!("temp_pos should have just made a move, so it shouldnt be an errror here, in makes_self_check: {}", e);
-        }
-        match mov.get_castle_side() {
-            None => {},
-            Some(_)=>{
-                move_list.clear();
-                temp_pos.current.side_to_move = !temp_pos.current.side_to_move; // i have to flip the colors to make the oponent be able to see every square (to check for kastling edgecase)
-                temp_pos.pseudo_legal(&mut move_list);
-                for oponents_move in move_list.iter(){
-                    let target = oponents_move.get_end_square();
-                    let self_king_pos = match moving_color {
-                        Color::Black => bitboard_consts::BLACK_KING,
-                        Color::White => bitboard_consts::WHITE_KING
-                    };
-                    if self_king_pos.intersects(target.to_bitboard()){
-                        return true;
-                    }
-                }
-            }
-
-        }
-        
-        false
-    }
-
-    // TODO This should probably change to a faster way, but for now i am to lacy
-    pub fn fill_legal(&self, move_list: &mut MoveList){
-        move_list.clear();
-
-        let mut list = MoveList::new_empty();
-        self.pseudo_legal(&mut list);
-
-        for mov in list.iter(){
-            if !self.makes_self_check(*mov){
-                move_list.add(*mov);
-            }
-        }
-    }
-
-    // !!! Only for debuging
-    pub fn legal_moves(&self)->MoveList{
-        let mut move_list = MoveList::new_empty();
-        self.fill_legal(&mut move_list);
-        move_list
-    }
-
 
     pub fn undo_move(&mut self) -> Result<(), &'static str> {
 
@@ -437,14 +483,15 @@ mod test{
     
     #[test]
     fn test_board(){
-        let mut position = Position::new(Some("8/P7/8/8/8/8/5k2/7K w - - 0 1"));
+        let mut position = MoveGen::from_fen(Some("8/P7/8/8/8/8/5k2/7K w - - 0 1"));
+        
         dbg!(&position);
         let mut rng = rand::rng();
         for i in 0..50{
             let moves = position.legal_moves();
             let nr = rng.random_range(0..moves.size());
-            position.make_move(moves.get(nr).unwrap());
-            dbg!(position.current.bitboards.all_occupancy);
+            position.pos.make_move(moves.get(nr).unwrap());
+            dbg!(position.pos.current.bitboards.all_occupancy);
         }
 
 

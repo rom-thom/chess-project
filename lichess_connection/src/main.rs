@@ -210,12 +210,12 @@ use rand::Rng;
 /// `history` is the list of all past UCI moves in the game so far.
 fn generate_move(history: &[&str]) -> Option<String> { // random for now // TODO here is where i should generate the move
     // For now, always play "e2e4"
-    let mut pos = position::Position::new(None); // We are starting from the starting_ position
+    let mut move_gen = movegen::MoveGen::from_fen(None); // We are starting from the starting_ position
     for mov in history{
-        pos.make_move(&pos.stringmove_to_bit_move(mov).expect("Couldn't convert move recieved from liches to bitmove"));
+        move_gen.pos.make_move(&move_gen.stringmove_to_bitmove(mov).expect("Couldn't convert move recieved from liches to bitmove"));
     };
     let mut legal_moves = moves::MoveList::new_empty();
-    pos.fill_legal(&mut legal_moves);
+    move_gen.fill_legal(&mut legal_moves);
 
 
     // if no legal moves, game is over
@@ -228,13 +228,13 @@ fn generate_move(history: &[&str]) -> Option<String> { // random for now // TODO
             good_moves.add(*i);
             continue;
         }
-        pos.make_move(i);
-        let opp = pos.legal_moves();
+        move_gen.pos.make_move(i);
+        let opp = move_gen.legal_moves();
         if opp.size() == 0{
-            pos.current.side_to_move = !pos.current.side_to_move;
-            let my_2 = pos.legal_moves();
+            move_gen.pos.current.side_to_move = !move_gen.pos.current.side_to_move;
+            let my_2 = move_gen.legal_moves();
             for my_move in my_2.iter(){
-                if let Some(piece_index) = pos.current.bitboards.piece_on_square(my_move.get_end_square()){
+                if let Some(piece_index) = move_gen.pos.current.bitboards.piece_on_square(my_move.get_end_square()){
                     if piece_index.to_piece() == Piece::King{
                         return Some(i.to_string());
                     }
@@ -242,9 +242,9 @@ fn generate_move(history: &[&str]) -> Option<String> { // random for now // TODO
                 
                 continue;
             }
-            pos.current.side_to_move = !pos.current.side_to_move;
+            move_gen.pos.current.side_to_move = !move_gen.pos.current.side_to_move;
         }
-        pos.undo_move().expect("couldn't undo move i just did");
+        move_gen.pos.undo_move().expect("couldn't undo move i just did");
     }
     if good_moves.size() == 0{
         good_moves = legal_moves;

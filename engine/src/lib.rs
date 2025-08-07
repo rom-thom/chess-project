@@ -1,4 +1,4 @@
-pub mod test;
+pub mod evaluation;
 #[cfg(test)]
 mod tests {
     // use super::*;
