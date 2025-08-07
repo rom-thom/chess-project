@@ -44,7 +44,7 @@ impl Position{
     }
 
     // returns the move from  // ? it is very slow so dont use it for timecritical things
-    pub fn movestring_to_bit_move(&self, moves_str: &str)->Result<BitMove, String>{
+    pub fn stringmove_to_bit_move(&self, moves_str: &str)->Result<BitMove, String>{
         // This finds the last move as that is all we need for the engine, and if the string is weird, it removes mitaken extra spaces
         let last_move = moves_str.split(" ")
                                        .filter(|s| !s.is_empty())
@@ -82,7 +82,21 @@ impl Position{
 
 
         Ok(self.expand_move(start_square, end_square, promotion_piece))
+    }
+
+
 }
+impl BitMove {
+    pub fn to_string(&self) -> String{
+        let from = self.get_start_square().square_str();
+        let to = self.get_end_square().square_str();
+        let mut stringmove = from + &to;
+        match self.get_premotion_piece() {
+            None => (),
+            Some(promo_piece) => {stringmove.push(promo_piece.to_char())}
+        }
+        stringmove
+    }
 }
 
 
@@ -93,7 +107,8 @@ impl Position{
 #[test]
 fn test_position(){
     let mut position = Position::new(None);
-    let bitmove = position.movestring_to_bit_move("2 3  s e2e8r").unwrap();
-    dbg!(Move::from(bitmove));
+    let bitmove = position.stringmove_to_bit_move("2 3  s e2e4").unwrap();
+    dbg!(bitmove);
+    dbg!(bitmove.to_string());
 
 }

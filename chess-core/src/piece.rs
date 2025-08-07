@@ -38,6 +38,18 @@ impl Piece{
             _ => None
         }
     }
+    pub fn to_char(&self) -> char {
+        match self{
+            Piece::Pawn   => 'p',
+            Piece::Knight => 'n',
+            Piece::Bishop => 'b',
+            Piece::Rook   => 'r',
+            Piece::Queen  => 'q',
+            Piece::King   => 'k',
+        }
+    }
+
+
 }
 
 

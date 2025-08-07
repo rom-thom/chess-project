@@ -36,7 +36,7 @@ fn play_random_engine(starting_fen_string: Option<&str>, your_color: Color){
             print!("You are white, play a move in the format startsquare endsquare potential promotion (example: e2e4 or later e7f8r for promoting to rook): ");
             io::stdout().flush().expect("Failed to flush stdout");
             io::stdin().read_line(&mut user_move_string).expect("Failed to read line");
-            user_move_bitmove = position.movestring_to_bit_move(&user_move_string.trim()).expect("First move was wrong/invalid start the program again, but now with a valid move");
+            user_move_bitmove = position.stringmove_to_bit_move(&user_move_string.trim()).expect("First move was wrong/invalid start the program again, but now with a valid move");
             position.make_move(&user_move_bitmove);  
         }
         Color::Black =>{
@@ -67,7 +67,7 @@ fn play_random_engine(starting_fen_string: Option<&str>, your_color: Color){
             io::stdout().flush().expect("Failed to flush stdout");
             io::stdin().read_line(&mut user_move_string).expect("Failed to read line");
 
-            match position.movestring_to_bit_move(&user_move_string.trim()) {
+            match position.stringmove_to_bit_move(&user_move_string.trim()) {
                 Ok(user_move) =>{
                     user_move_bitmove = user_move;
                     break 'wrong_input_move_loop
@@ -89,6 +89,6 @@ fn test_count(){
     // dbg!(pos.current);
     // dbg!(_perft(&mut pos, 2));
 
-    play_random_engine(None, Color::Black);
+    play_random_engine(None, Color::White);
 
 }

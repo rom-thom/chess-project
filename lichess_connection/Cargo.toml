@@ -7,5 +7,13 @@ edition = "2024"
 chess-core = { path = "../chess-core" }
 engine = { path = "../engine"}
 
+
+tokio        = { version = "1.45.0", features = ["full"] }
+tokio-stream = "0.1"
+reqwest      = { version = "0.12", features = ["json", "stream"] }
+anyhow       = "1.0"
+licheszter   = "0.4"
+futures-util = "0.3"
 dotenv = "0.15.0"
-reqwest = { version = "0.12.22", features = ["json", "blocking"] }
+serde = "1.0.219"
+serde_json = "1.0.142"
