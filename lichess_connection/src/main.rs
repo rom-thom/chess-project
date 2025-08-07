@@ -4,6 +4,11 @@ use serde::Deserialize;
 use tokio_stream::StreamExt;
 use std::env;
 
+use std::sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
+};
+
 #[derive(Debug, Deserialize)]
 struct LichessEvent {
     #[serde(rename = "type")]
@@ -64,6 +69,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Connected to Lichess event stream...");
 
+    // For counting games
+    let active_games = Arc::new(AtomicUsize::new(0));
+
     // 2) Handle challenges and game starts
     while let Some(chunk) = ev_stream.next().await {
         let chunk = chunk?;
@@ -85,8 +93,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     println!("Challenge accepted ✅");
                 }
                 EventInner::GameStart { game } => {
-                    println!("Game started ({}): playing as {}", game.id, game.color);
-                    play_game(&client, &token, game.id.clone(), game.color.clone()).await?;
+
+
+                    // Spawn a new task for each game:
+                    let client   = client.clone();
+                    let token    = token.clone();
+                    let id       = game.id.clone();
+                    let color    = game.color.clone();
+                    let counter  = active_games.clone();
+
+                    // Increment and print:
+                    let now = counter.fetch_add(1, Ordering::SeqCst) + 1;
+                    println!(
+                        "➤ [{}] Game started (playing as {}).  🚀 {} game(s) running",
+                        id, color, now
+                    );
+
+                    
+
+                    tokio::spawn(async move {
+                        // Any println! inside play_game we’ll prefix with [id], see below
+                        if let Err(err) = play_game(&client, &token, id.clone(), color.clone()).await {
+                            eprintln!("[{}] ⚠️ Game error: {}", id, err);
+                        }
+                        // ------------- After finishing: decrement & log -------------
+                        let remaining = counter.fetch_sub(1, Ordering::SeqCst) - 1;
+                        println!("➤ [{}] Game finished. 🛑 {} game(s) remaining", id, remaining);
+                        // ------------------------------------------------------------
+                    });
                 }
             }
         }
@@ -109,7 +143,7 @@ async fn play_game(
         .await?
         .bytes_stream();
 
-    println!("Connected to game stream…");
+    println!("[{}] Connected to game stream…", game_id);
 
     while let Some(chunk) = gs.next().await {
         let chunk = chunk?;
@@ -133,22 +167,29 @@ async fn play_game(
                 };
 
                 if my_turn {
-                    let uci = generate_move(&history);
-                    println!("Playing move: {}", uci);
+                    match generate_move(&history) {
+                        Some(uci) => {
+                            println!("[{}] Playing move: {}", game_id, uci);
 
-                    let res = client
-                        .post(&format!(
-                            "https://lichess.org/api/bot/game/{}/move/{}",
-                            game_id, uci
-                        ))
-                        .bearer_auth(token)
-                        .send()
-                        .await?;
+                        let res = client
+                            .post(&format!(
+                                "https://lichess.org/api/bot/game/{}/move/{}",
+                                game_id, uci
+                            ))
+                            .bearer_auth(token)
+                            .send()
+                            .await?;
 
-                    if res.status().is_success() {
-                        println!("Move {} sent ✅", uci);
-                    } else {
-                        eprintln!("Failed to send move: {}", res.status());
+                        if res.status().is_success() {
+                            println!("[{}] Move {} sent ✅", game_id, uci);
+                        } else {
+                            eprintln!("[{}] Failed to send move: {}", game_id, res.status());
+                        }
+                    }
+                    None => {
+                        println!("[{}] No legal moves; game over.", game_id);
+                        return Ok(());
+                    }
                     }
                 }
             }
@@ -163,11 +204,11 @@ async fn play_game(
 
 
 
-use chess_core::*;
+use chess_core::{piece::Piece, *};
 use rand::Rng;
 
 /// `history` is the list of all past UCI moves in the game so far.
-fn generate_move(history: &[&str]) -> String { // random for now // TODO here is where i should generate the move
+fn generate_move(history: &[&str]) -> Option<String> { // random for now // TODO here is where i should generate the move
     // For now, always play "e2e4"
     let mut pos = position::Position::new(None); // We are starting from the starting_ position
     for mov in history{
@@ -176,10 +217,45 @@ fn generate_move(history: &[&str]) -> String { // random for now // TODO here is
     let mut legal_moves = moves::MoveList::new_empty();
     pos.fill_legal(&mut legal_moves);
 
+
+    // if no legal moves, game is over
+    if legal_moves.size() == 0 {
+        return None;
+    }
+    let mut good_moves = moves::MoveList::new_empty();
+    for i in legal_moves.iter(){
+        if i.is_capture(){
+            good_moves.add(*i);
+            continue;
+        }
+        pos.make_move(i);
+        let opp = pos.legal_moves();
+        if opp.size() == 0{
+            pos.current.side_to_move = !pos.current.side_to_move;
+            let my_2 = pos.legal_moves();
+            for my_move in my_2.iter(){
+                if let Some(piece_index) = pos.current.bitboards.piece_on_square(my_move.get_end_square()){
+                    if piece_index.to_piece() == Piece::King{
+                        return Some(i.to_string());
+                    }
+                }
+                
+                continue;
+            }
+            pos.current.side_to_move = !pos.current.side_to_move;
+        }
+        pos.undo_move().expect("couldn't undo move i just did");
+    }
+    if good_moves.size() == 0{
+        good_moves = legal_moves;
+    }
+
+
+
     // find random move
     let mut rng = rand::rng();
-    let move_index = rng.random_range(0..legal_moves.size());
+    let move_index = rng.random_range(0..good_moves.size());
 
-    let move_to_play = legal_moves.get(move_index).expect("Here should be a move, otherwise the rand thing has found an elegal mmove index");
-    move_to_play.to_string()
+    let move_to_play = good_moves.get(move_index).expect("Here should be a move, otherwise the rand thing has found an elegal mmove index");
+    Some(move_to_play.to_string())
 }

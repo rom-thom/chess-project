@@ -8,6 +8,23 @@ use crate::{attack, position};
 use crate::bitboard_consts::{self, CORNERS};
 use crate::position::{Color, Position};
 
+pub struct MoveGen<'a> { pos: &'a Position }
+
+impl<'a> MoveGen<'a> {
+  pub fn new(pos: &'a Position) -> Self { Self { pos } }
+  pub fn pseudo_legal(&self, move_list: &mut MoveList){
+
+  }
+  pub fn fill_legal(&self, move_list: &mut MoveList){}
+
+pub fn legal_moves(&self)->MoveList{
+    MoveList::new_empty()
+}
+}
+
+
+
+
 impl Position{
     // Move generation (finds only the one for the color that currently is to move)
     // Finds all the pseudo legal (legal except for checks) moves in that position
