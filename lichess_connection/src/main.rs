@@ -1,124 +1,89 @@
 use dotenv::dotenv;
-use std::env;
 use reqwest::Client;
-use tokio_stream::StreamExt;
 use serde::Deserialize;
-use serde_json;
+use tokio_stream::StreamExt;
+use std::env;
 
+#[derive(Debug, Deserialize)]
+struct LichessEvent {
+    #[serde(rename = "type")]
+    kind: String,
+    #[serde(flatten)]
+    inner: EventInner,
+}
 
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum EventInner {
+    Challenge { challenge: Challenge },
+    GameStart { game: GameStart },
+}
+
+#[derive(Debug, Deserialize)]
+struct Challenge {
+    id: String,
+}
 
 #[derive(Debug, Deserialize)]
 struct GameStart {
     id: String,
-    // you can add more fields later if needed
+    color: String,    // "white" or "black"
 }
 
+#[derive(Debug, Deserialize)]
+struct GameState {
+    moves: String,    // space-separated UCI strings
+}
 
-
-
-
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type")]
+enum GameEvent {
+    #[serde(rename = "gameState")]
+    GameState { moves: String },
+    // you can add other variants if you care (e.g. chatLine)
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
-
     let token = env::var("LICHESS_BOT_TOKEN")
         .expect("LICHESS_BOT_TOKEN must be set");
-
     let client = Client::new();
 
-    let response = client
+    // 1) Connect to the global event stream
+    let mut ev_stream = client
         .get("https://lichess.org/api/stream/event")
         .bearer_auth(&token)
         .send()
-        .await?;
+        .await?
+        .bytes_stream();
 
     println!("Connected to Lichess event stream...");
 
-    let mut lines = response.bytes_stream();
-
-    while let Some(chunk) = lines.next().await {
+    // 2) Handle challenges and game starts
+    while let Some(chunk) = ev_stream.next().await {
         let chunk = chunk?;
         let text = String::from_utf8_lossy(&chunk);
-        for line in text.lines() {
-            if !line.trim().is_empty() {
-                
-
-
-                match serde_json::from_str::<LichessEvent>(line) {
-                    Ok(event) => {
-                        match event {
-                            LichessEvent::Challenge { challenge } => {
-                                println!("New challenge: {:?}", challenge.id);
-
-                                let accept_url = format!("https://lichess.org/api/challenge/{}/accept", challenge.id);
-
-                                let res = client
-                                    .post(&accept_url)
-                                    .bearer_auth(&token)
-                                    .send()
-                                    .await?;
-
-                                if res.status().is_success() {
-                                    println!("Challenge accepted ✅");
-                                } else {
-                                    println!("Failed to accept challenge ❌: {}", res.status());
-                                }
-                            }
-
-
-
-
-
-
-                            LichessEvent::GameStart { game } => {
-                                println!("Game started: {:?}", game.id);
-
-                                // Connect to game stream
-                                let game_url = format!("https://lichess.org/api/bot/game/stream/{}", game.id);
-
-                                let game_response = client
-                                    .get(&game_url)
-                                    .bearer_auth(&token)
-                                    .send()
-                                    .await?;
-
-                                let mut game_lines = game_response.bytes_stream();
-
-                                println!("Connected to game stream...");
-
-                                while let Some(line) = game_lines.next().await {
-                                    let line = line?;
-                                    let text = String::from_utf8_lossy(&line);
-
-                                    for game_line in text.lines() {
-                                        if game_line.trim().is_empty() {
-                                            continue;
-                                        }
-
-                                        println!("Game event: {}", game_line);
-
-                                        // TODO: parse moves and decide when it's your turn
-                                    }
-                                }
-                            }
-
-
-
-
-                            
-
-                        }
-                    }
-                    Err(err) => {
-                        eprintln!("Could not parse event: {}", err);
-                    }
+        for line in text.lines().filter(|l| !l.trim().is_empty()) {
+            let evt: LichessEvent = serde_json::from_str(line)?;
+            match evt.inner {
+                EventInner::Challenge { challenge } => {
+                    println!("New challenge: {}", challenge.id);
+                    client
+                        .post(&format!(
+                            "https://lichess.org/api/challenge/{}/accept",
+                            challenge.id
+                        ))
+                        .bearer_auth(&token)
+                        .send()
+                        .await?
+                        .error_for_status()?;
+                    println!("Challenge accepted ✅");
                 }
-
-
-
-
-
+                EventInner::GameStart { game } => {
+                    println!("Game started ({}): playing as {}", game.id, game.color);
+                    play_game(&client, &token, game.id.clone(), game.color.clone()).await?;
+                }
             }
         }
     }
@@ -126,25 +91,68 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+async fn play_game(
+    client: &Client,
+    token: &str,
+    game_id: String,
+    color: String,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // 3) Open the per-game stream
+    let mut gs = client
+        .get(&format!("https://lichess.org/api/bot/game/stream/{}", game_id))
+        .bearer_auth(token)
+        .send()
+        .await?
+        .bytes_stream();
 
+    println!("Connected to game stream…");
 
+    while let Some(chunk) = gs.next().await {
+        let chunk = chunk?;
+        let text = String::from_utf8_lossy(&chunk);
+        for line in text.lines().filter(|l| !l.trim().is_empty()) {
+            if let Ok(GameEvent::GameState { moves }) = serde_json::from_str::<GameEvent>(line) {
+                // split into ["e2e4", "e7e5", …]
+                let history: Vec<&str> = moves.split_whitespace().collect();
 
+                // determine whose turn it is:
+                let my_turn = if color == "white" {
+                    history.len() % 2 == 0
+                } else {
+                    history.len() % 2 == 1
+                };
 
+                if my_turn {
+                    // 👉 generate your move here:
+                    let uci = generate_move(&history);
+                    println!("Playing move: {}", uci);
 
+                    // send it to Lichess
+                    let res = client
+                        .post(&format!(
+                            "https://lichess.org/api/bot/game/{}/move/{}",
+                            game_id, uci
+                        ))
+                        .bearer_auth(token)
+                        .send()
+                        .await?;
 
-#[derive(Debug, Deserialize)]
-#[serde(tag = "type")]
-enum LichessEvent {
-    #[serde(rename = "challenge")]
-    Challenge { challenge: Challenge },
+                    if res.status().is_success() {
+                        println!("Move {} sent ✅", uci);
+                    } else {
+                        eprintln!("Failed to send move: {}", res.status());
+                    }
+                }
+            }
+        }
+    }
 
-    #[serde(rename = "gameStart")]
-    GameStart { game: GameStart },
+    Ok(())
 }
 
-
-#[derive(Debug, Deserialize)]
-struct Challenge {
-    id: String,
-    // You can add more fields later if needed
+/// Stub: replace with your own move-generation logic
+/// `history` is the list of all past UCI moves in the game so far.
+fn generate_move(_history: &[&str]) -> String {
+    // For now, always play "e2e4"
+    "e7e5".into()
 }
