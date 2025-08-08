@@ -94,7 +94,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 EventInner::GameStart { game } => {
 
-
                     // Spawn a new task for each game:
                     let client   = client.clone();
                     let token    = token.clone();

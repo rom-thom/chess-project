@@ -71,6 +71,14 @@ impl Bitboards{
         }
     }
  
+    
+    #[inline(always)]
+    pub fn color_slice(&self, c: Color) -> &[Bitboard] {
+        match c {
+            Color::White => &self.boards[0..6],
+            Color::Black => &self.boards[6..12],
+        }
+    }
 
 
     #[inline] // TODO this can be sped up by using mailbox: [Option<PieceIndex>; 64], which allways has the pieces for every square stored
@@ -132,6 +140,15 @@ impl Bitboard {
     #[inline]
     pub fn is_occupied(&self, square: Square) -> bool {
         self.intersects((square as u8).into())
+    }
+
+    #[inline]
+    pub fn count_ones(&self) -> u32{
+        self.0.count_ones()
+    }
+    #[inline]
+    pub fn count_zeros(&self) -> u32{
+        self.0.count_zeros()
     }
 
 

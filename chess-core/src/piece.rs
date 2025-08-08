@@ -74,6 +74,7 @@ pub enum PieceIndex {
 }
 
 
+
 impl PieceIndex {
     pub fn to_fen_char(self) -> char {
         match self {
