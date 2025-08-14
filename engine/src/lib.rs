@@ -1,5 +1,6 @@
-pub mod evaluation;
-
+pub mod static_eval;
+pub mod dynamic_eval;
+pub mod serch;
 #[cfg(test)]
 mod tests {
     // use super::*;

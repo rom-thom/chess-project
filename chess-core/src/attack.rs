@@ -1,6 +1,7 @@
 
 
 
+use crate::attack;
 use crate::piece::PieceIndex;
 use crate::position::{Color, Position};
 use crate::square::{Square};
@@ -115,7 +116,7 @@ pub fn knight_attacks(square: Square)-> Bitboard{
     }
     result_board
 }
-pub fn pawn_attacks(square: Square, all_occ: Bitboard, color : Color)-> Bitboard{
+pub fn pawn_moves(square: Square, all_occ: Bitboard, color : Color)-> Bitboard{
     let origin = Bitboard::from(square.index());
     let (row, _) = Bitboard::index_to_coord(square.index());
     let mut temp = origin;
@@ -131,12 +132,6 @@ pub fn pawn_attacks(square: Square, all_occ: Bitboard, color : Color)-> Bitboard
                     result_occ |= temp;
                 }
             }
-            temp = origin;
-            temp.shift_upp_right();
-            result_occ |= temp;
-            temp = origin;
-            temp.shift_upp_left();
-            result_occ |= temp;
 
         },
         Color::Black => {
@@ -149,23 +144,41 @@ pub fn pawn_attacks(square: Square, all_occ: Bitboard, color : Color)-> Bitboard
                     result_occ |= temp;
                 }
             }
-            temp = origin;
-            temp.shift_down_right();
-            result_occ |= temp;
-            temp = origin;
-            temp.shift_down_left();
-            result_occ |= temp;
-
         }
     };
+
+    result_occ |= pawn_attacks(square, color); // diagonal
+
     result_occ
+}
+
+
+
+#[inline]
+pub fn pawn_attacks(sq: Square, color: Color) -> Bitboard { 
+    let sq_bb = Bitboard::from(sq.index());
+
+    match color {
+        Color::White => {
+            // White pawns attack up-left and up-right.
+            let mut dl = sq_bb; dl.shift_upp_left();
+            let mut dr = sq_bb; dr.shift_upp_right();
+            dl | dr
+        }
+        Color::Black => {
+            // Black pawns attack down-left and down-right.
+            let mut ul = sq_bb; ul.shift_down_left();
+            let mut ur = sq_bb; ur.shift_down_right();
+            ul | ur
+        }
+    }
 }
 
 
 pub fn get_attacks(piece:PieceIndex, square: Square, all_occ: Bitboard, color : Color)-> Bitboard{
     match piece {
         PieceIndex::WhitePawn | PieceIndex::BlackPawn => {
-            pawn_attacks(square, all_occ, color)
+            pawn_moves(square, all_occ, color)
         }
         PieceIndex::WhiteKnight | PieceIndex::BlackKnight => {
             knight_attacks(square)
@@ -195,7 +208,7 @@ fn test_attacks(){
 
 
 
-    let new_b = rook_attacks(Square::from_idx(56).unwrap(), position.current.bitboards.all_occupancy);
+    let new_b = pawn_attacks(Square::D4, Color::Black);
 
     dbg!(new_b);
 

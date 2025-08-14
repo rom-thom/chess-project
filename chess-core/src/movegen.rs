@@ -285,6 +285,9 @@ impl MoveGen {
         Ok(self.pos.expand_move(start_square, end_square, promotion_piece))
     }
 
+    pub fn captures(&self, out: &mut MoveList){
+        // TODO add a list that only looks at captures
+    }
 }
 
 
@@ -464,6 +467,51 @@ impl Position{
     }
 
 
+    #[inline(always)]
+    pub fn in_check(&self) -> bool { // TODO Add attack table to loop trough what the opponent attack
+        let color = self.current.side_to_move;
+        let ksq = self.current
+            .bitboards
+            .get_bitboard(PieceIndex::from_piece(Piece::King, color))
+            .to_square()
+            .unwrap_or_else(|err| {
+                panic!("there should always exist a king with that color; something is wrong: {:?}", err)});// single bit
+
+        self.is_square_attacked(ksq, !color)
+    }
+
+    #[inline]
+    pub fn is_square_attacked(&self, sq: Square, by: Color) -> bool {
+        // Pseudo-legal control only (pins/king-safety ignored)
+        let all_occ   = self.current.bitboards.all_occupancy;
+        let by_slice  = self.current.bitboards.color_slice(by);
+
+        let pawn_occ   = by_slice[Piece::Pawn.to_index()];
+        let bishop_occ = by_slice[Piece::Bishop.to_index()];
+        let knight_occ = by_slice[Piece::Knight.to_index()];
+        let rook_occ   = by_slice[Piece::Rook.to_index()];
+        let queen_occ  = by_slice[Piece::Queen.to_index()];
+        let king_occ   = by_slice[Piece::King.to_index()];
+
+        // Sliders (reverse-from-target works because your *_attacks include the first blocker)
+        if attack::rook_attacks(sq, all_occ).intersects(rook_occ | queen_occ)   { return true; }
+        if attack::bishop_attacks(sq, all_occ).intersects(bishop_occ | queen_occ){ return true; }
+
+        // Non-sliders (symmetric masks)
+        if attack::knight_attacks(sq).intersects(knight_occ) { return true; }
+        if attack::king_attacks(sq).intersects(king_occ)     { return true; }
+
+        // Pawns: from target `sq`, attackers are in the opposite-direction mask; hence `!by`.
+        // This yields the two *potential* attacker squares; intersect with actual pawns.
+        if attack::pawn_attacks(sq, !by).intersects(pawn_occ) { return true; }
+
+        false
+    }
+    
+    #[inline]
+    pub fn is_check_mate(&self) -> bool{
+        self.in_check() && todo!("see how many legal moves there are if none: rerurn true")
+    }
 }
 
 
@@ -493,13 +541,15 @@ mod test{
             position.pos.make_move(moves.get(nr).unwrap());
             dbg!(position.pos.current.bitboards.all_occupancy);
         }
-
-
-
-        
-        // dbg!(&position.current);
-
-
-
     }
+}
+
+#[test]
+fn test_attack(){
+
+    let position = Position::new(Some("rnb2bnr/p4k1p/1pppqp1p/4p3/2Q1P1B1/3P4/PPP2PPP/RN2K1NR b KQ - 1 10"));
+    dbg!(&position);
+
+    let s = position.is_square_attacked(Square::G4, Color::Black);
+    dbg!(s);
 }

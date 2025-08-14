@@ -1,6 +1,8 @@
 use dotenv::dotenv;
+use engine::serch;
 use reqwest::Client;
 use serde::Deserialize;
+use tokio::time;
 use tokio_stream::StreamExt;
 use std::env;
 
@@ -8,6 +10,7 @@ use std::sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
 };
+use std::time::Duration;
 
 #[derive(Debug, Deserialize)]
 struct LichessEvent {
@@ -56,7 +59,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     let token = env::var("LICHESS_BOT_TOKEN")
         .expect("LICHESS_BOT_TOKEN must be set");
-    let client = Client::new();
+    let client = reqwest::Client::builder()
+    .tcp_keepalive(Some(Duration::from_secs(30)))
+    .pool_idle_timeout(Some(Duration::from_secs(15)))
+    .pool_max_idle_per_host(0) // avoids stale pooled conns
+    .build()?;
+
 
     // 1) Connect to the global event stream
     let mut ev_stream = client
@@ -166,18 +174,17 @@ async fn play_game(
                 };
 
                 if my_turn {
-                    match generate_move(&history) {
+                    match brute_force_generator(&history) {
                         Some(uci) => {
                             println!("[{}] Playing move: {}", game_id, uci);
 
                         let res = client
-                            .post(&format!(
-                                "https://lichess.org/api/bot/game/{}/move/{}",
-                                game_id, uci
-                            ))
+                            .post(format!("https://lichess.org/api/bot/game/{}/move/{}", game_id, uci))
                             .bearer_auth(token)
+                            .timeout(Duration::from_secs(10))  // safe here; not applied to the stream
                             .send()
                             .await?;
+
 
                         if res.status().is_success() {
                             println!("[{}] Move {} sent ✅", game_id, uci);
@@ -207,8 +214,7 @@ use chess_core::{piece::Piece, *};
 use rand::Rng;
 
 /// `history` is the list of all past UCI moves in the game so far.
-fn generate_move(history: &[&str]) -> Option<String> { // random for now // TODO here is where i should generate the move
-    // For now, always play "e2e4"
+fn random_move(history: &[&str]) -> Option<String> { // random for now // TODO here is where i should generate the move
     let mut move_gen = movegen::MoveGen::from_fen(None); // We are starting from the starting_ position
     for mov in history{
         move_gen.pos.make_move(&move_gen.stringmove_to_bitmove(mov).expect("Couldn't convert move recieved from liches to bitmove"));
@@ -250,11 +256,26 @@ fn generate_move(history: &[&str]) -> Option<String> { // random for now // TODO
     }
 
 
-
+    std::thread::sleep(Duration::from_millis(5000));
     // find random move
     let mut rng = rand::rng();
     let move_index = rng.random_range(0..good_moves.size());
 
     let move_to_play = good_moves.get(move_index).expect("Here should be a move, otherwise the rand thing has found an elegal mmove index");
     Some(move_to_play.to_string())
+}
+
+
+
+fn brute_force_generator(history:  &[&str]) -> Option<String>{
+        let mut move_gen = movegen::MoveGen::from_fen(None); // We are starting from the starting_ position
+    for mov in history{
+        move_gen.pos.make_move(&move_gen.stringmove_to_bitmove(mov).expect("Couldn't convert move recieved from liches to bitmove"));
+    };
+    let mut legal_moves = moves::MoveList::new_empty();
+    move_gen.fill_legal(&mut legal_moves);
+
+
+    let bm = serch::serch_brute_force::<3>(&mut move_gen).expect("No move for some reason");
+    Some(bm.to_string())
 }

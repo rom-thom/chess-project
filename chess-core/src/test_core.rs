@@ -85,10 +85,10 @@ fn play_random_engine(starting_fen_string: Option<&str>, your_color: Color){
 
 #[test]
 fn test_count(){
-    // let mut pos = Position::new(Some("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b Kkq e4"));
-    // dbg!(pos.current);
-    // dbg!(_perft(&mut pos, 2));
+    let mut move_gen = MoveGen::from_fen(Some("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+    dbg!(move_gen.pos.current);
+    dbg!(_perft(&mut move_gen, 4));
 
-    play_random_engine(None, Color::White);
+    // play_random_engine(None, Color::White);
 
 }

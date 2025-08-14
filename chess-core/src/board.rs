@@ -104,6 +104,12 @@ impl Bitboards{
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct Bitboard(u64);
 
+#[derive(Copy, Clone, Eq, Debug, PartialEq)]
+pub enum BitboardError {
+    Empty,
+    MultipleBits(u32),
+    WrongBitcount { expected: u32, actual: u32 },
+}
 
 impl Bitboard {
     #[inline]
@@ -147,8 +153,12 @@ impl Bitboard {
         self.0.count_ones()
     }
     #[inline]
-    pub fn count_zeros(&self) -> u32{
+    pub fn count_zeros(&self) -> u32{ // finds the index to the first set bit
         self.0.count_zeros()
+    }
+    #[inline]
+    pub fn trailing_zeros(&self) -> u32{
+        self.0.trailing_zeros()
     }
 
 
@@ -185,6 +195,17 @@ impl Bitboard {
     // i want to be able to make const bitboards for masking sertain squares
     pub const fn new_const(val: u64)-> Self{
         Self(val)
+    }
+
+
+    pub fn to_square(&self) -> Result<Square, BitboardError> {
+        if self.count_ones() != 1 { // Because only one bit can be converted to a Square
+            return Err(BitboardError::WrongBitcount{expected: 1, actual: self.count_ones()});
+        }
+        
+        let index = self.trailing_zeros() as u8;
+
+        Ok(Square::from_idx(index).expect("this should have worked, as the index to the first element is most definately on the bitboard"))
     }
 
 }

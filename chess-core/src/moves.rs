@@ -1,4 +1,5 @@
-use std::fmt::Debug;
+use std::env::consts;
+use std::fmt::{Debug, DebugList};
 use std::fs::OpenOptions;
 use std::{iter, result};
 
@@ -16,7 +17,7 @@ const FLAG_MASK:  u16 = 0b111;
 
 
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Default, PartialEq)]
 pub struct BitMove(u16);
 
 // BitMove representation: FFFFFFTTTTTTCMMM  F = From, T = To, C=Capture, M = Move-flags(Quiet, (doubepawn push and en_passant in one), Promo*4, kastle * 2)
@@ -34,7 +35,7 @@ impl BitMove{
         Square::from_idx(((self.0 >> TO_SHIFT) & 0b111111) as u8).expect("get end square (Bitmove) finds an un squarable index to:")
     }
     pub fn get_piece(&self, boards_before_move: &Bitboards)->PieceIndex{
-        boards_before_move.piece_on_square(self.get_start_square()).expect("found no piece on square that the piece moved from")
+        boards_before_move.piece_on_square(self.get_start_square()).unwrap_or_else(|| panic!("found no piece on square that the piece moved from. Here is the all ocupancy board before move: {:?}, and here is the move: {:?}", boards_before_move.all_occupancy, Move::from(*self)))
     }
     pub fn is_capture(&self)->bool{
         (self.0 & CAPTURE_BIT) != 0
@@ -110,6 +111,8 @@ impl MoveList{
         }
     }
 
+    pub fn as_slice(&self) -> &[BitMove] { &self.moves[..self.len] }
+
 
     #[inline]
     pub fn add(&mut self, mov: BitMove){
@@ -138,8 +141,6 @@ impl MoveList{
         self.len = 0
     }
 }
-
-
 
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -220,3 +221,78 @@ impl From<BitMove> for Move{
 }
 
 
+impl Debug for BitMove{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let move_version = Move::from(*self);
+        move_version.fmt(f)
+    }
+}
+
+pub struct MovePath<const DEPTH: usize>{
+    moves: [BitMove; DEPTH],
+    len: usize
+}
+
+
+impl <const DEPTH: usize> MovePath<DEPTH>{
+    pub fn new_empty()-> Self{
+        Self { moves: [BitMove::default(); DEPTH], len: 0 }
+    }
+    
+    pub fn len(&self)->usize{
+        self.len
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool{
+        self.len == 0
+    }
+    #[inline]
+    pub fn is_full(&self) -> bool{
+        self.len >= DEPTH
+    }
+    pub const fn capacity(&self) -> usize{
+        DEPTH
+    }
+
+
+    pub fn push(&mut self, mov: BitMove) -> bool{ // false == full
+        if self.is_full(){
+            return false
+        }
+        self.moves[self.len] = mov;
+        self.len += 1;
+
+        true
+    }
+
+    pub fn pop(&mut self) -> Option<BitMove>{
+        if self.is_empty(){
+            return None
+        }
+        self.len -= 1;
+        Some(self.moves[self.len])
+    }
+    pub fn clear(&mut self){
+        self.len = 0
+    }
+    pub fn last(&self)->Option<BitMove>{
+        if self.is_empty(){
+            return None
+        }
+        Some(self.moves[self.len-1])
+    }
+}
+
+
+
+impl<const DEPTH: usize> Clone for MovePath<DEPTH> {
+    fn clone(&self) -> Self {
+        Self {
+            moves: self.moves,
+            len: self.len,
+        }
+    }
+}
+
+impl<const DEPTH: usize> Copy for MovePath<DEPTH> {}
