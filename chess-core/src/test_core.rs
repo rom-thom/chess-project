@@ -5,18 +5,18 @@ use std::io::{self, Write};
 use rand::Rng;
 
 
-fn _perft(move_gen: &mut MoveGen, depth: u32) -> u64 {
+fn _perft(pos: &mut Position, depth: u32) -> u64 {
     if depth == 0 {
         return 1;
     }
 
-    let moves = move_gen.legal_moves();
+    let moves = MoveGen::legal_moves(&pos);
     let mut nodes = 0;
 
     for m in moves.iter() {
-        move_gen.pos.make_move(m);
-        nodes += _perft(move_gen, depth - 1);
-        if let Err(e) = move_gen.pos.undo_move(){
+        pos.make_move(m);
+        nodes += _perft(pos, depth - 1);
+        if let Err(e) = pos.undo_move(){
             panic!("can't undo move... {}", e);
         }
     }
@@ -26,7 +26,7 @@ fn _perft(move_gen: &mut MoveGen, depth: u32) -> u64 {
 
 // This must be runn using this comand in the terminal "cargo test test_count -- --nocapture"
 fn play_random_engine(starting_fen_string: Option<&str>, your_color: Color){
-    let mut move_gen = MoveGen::from_fen(starting_fen_string);
+    let mut pos = Position::new(starting_fen_string);
     let mut user_move_string = String::new();
     let mut user_move_bitmove;
 
@@ -36,8 +36,8 @@ fn play_random_engine(starting_fen_string: Option<&str>, your_color: Color){
             print!("You are white, play a move in the format startsquare endsquare potential promotion (example: e2e4 or later e7f8r for promoting to rook): ");
             io::stdout().flush().expect("Failed to flush stdout");
             io::stdin().read_line(&mut user_move_string).expect("Failed to read line");
-            user_move_bitmove = move_gen.stringmove_to_bitmove(&user_move_string.trim()).expect("First move was wrong/invalid start the program again, but now with a valid move");
-            move_gen.pos.make_move(&user_move_bitmove);  
+            user_move_bitmove = MoveGen::stringmove_to_bitmove(&pos, &user_move_string.trim()).expect("First move was wrong/invalid start the program again, but now with a valid move");
+            pos.make_move(&user_move_bitmove);  
         }
         Color::Black =>{
             println!("You are black, so i start, after that, play a move in the format startsquare endsquare potential promotion (example: e2e4 or later e7f8r for promoting to rook): ");
@@ -50,16 +50,16 @@ fn play_random_engine(starting_fen_string: Option<&str>, your_color: Color){
     let mut move_index;
     loop{
         legal_moves.clear();
-        move_gen.fill_legal(&mut legal_moves);
+        MoveGen::fill_legal(&pos, &mut legal_moves);
         if legal_moves.size() == 0{
             println!("I have no legal moves, so you determine if you win or it is remis/pat/draw, or just that the chess engine is broken (but that is unposible. After all i did make it)");
             break;
         }
         move_index = rng.random_range(0..legal_moves.size());
 
-        move_gen.pos.make_move(legal_moves.get(move_index).expect("the random generator, generated a number that is outside the size, which shouldnt happen, but here we are, in this cruel wourld"));
+        pos.make_move(legal_moves.get(move_index).expect("the random generator, generated a number that is outside the size, which shouldnt happen, but here we are, in this cruel wourld"));
 
-        print!("{:?}", move_gen.pos.current);
+        print!("{:?}", pos.current);
 
         'wrong_input_move_loop: loop{
             print!("Your turn what move do you want to play: ");
@@ -67,7 +67,7 @@ fn play_random_engine(starting_fen_string: Option<&str>, your_color: Color){
             io::stdout().flush().expect("Failed to flush stdout");
             io::stdin().read_line(&mut user_move_string).expect("Failed to read line");
 
-            match move_gen.stringmove_to_bitmove(&user_move_string.trim()) {
+            match MoveGen::stringmove_to_bitmove(&pos, &user_move_string.trim()) {
                 Ok(user_move) =>{
                     user_move_bitmove = user_move;
                     break 'wrong_input_move_loop
@@ -77,7 +77,7 @@ fn play_random_engine(starting_fen_string: Option<&str>, your_color: Color){
                 }
             }
         }
-        move_gen.pos.make_move(&user_move_bitmove);
+        pos.make_move(&user_move_bitmove);
     }
 }
 
@@ -85,9 +85,9 @@ fn play_random_engine(starting_fen_string: Option<&str>, your_color: Color){
 
 #[test]
 fn test_count(){
-    let mut move_gen = MoveGen::from_fen(Some("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
-    dbg!(move_gen.pos.current);
-    dbg!(_perft(&mut move_gen, 4));
+    let mut pos = Position::new(Some("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+    dbg!(pos.current);
+    dbg!(_perft(&mut pos, 4));
 
     // play_random_engine(None, Color::White);
 

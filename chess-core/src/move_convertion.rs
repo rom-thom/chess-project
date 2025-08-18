@@ -67,8 +67,8 @@ impl BitMove {
 
 #[test]
 fn test_position(){
-    let mut move_gen = MoveGen::from_fen(None);
-    let bitmove = move_gen.stringmove_to_bitmove("2 3  s e2e4").unwrap();
+    let pos = Position::new(None);
+    let bitmove = MoveGen::stringmove_to_bitmove(&pos, "2 3  s e2e4").unwrap();
     dbg!(bitmove);
     dbg!(bitmove.to_string());
 

@@ -316,5 +316,5 @@ impl Debug for Bitboard{
 #[test]
 fn test_bitboard(){
     let pos = Position::new(None);
-    dbg!(pos);
+    dbg!(pos.current.bitboards.all_occupancy);
 }   

@@ -1,3 +1,5 @@
+use std::i32;
+
 // For static evaluation
 use chess_core::position::{Color, Position};
 use chess_core::piece::PieceIndex;
@@ -33,7 +35,12 @@ pub fn evaluate_material(pos: &Position) -> i32 {
 // TODO this should be a lot more extensive, looking at the positional state and so on
 pub fn evaluate(pos: &Position) -> i32 { 
 
-
+    if pos.is_check_mate(){
+        match pos.current.side_to_move {
+            Color::White => {return i32::MIN},
+            Color::Black => {return i32::MAX}
+        }
+    }
 
     evaluate_material(pos)
 }

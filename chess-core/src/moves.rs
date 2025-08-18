@@ -4,6 +4,8 @@ use std::fs::OpenOptions;
 use std::{iter, result};
 
 use crate::kastling::{Castling, CastlingSide, Imposter};
+use crate::movegen::MoveGen;
+use crate::position::Position;
 use crate::square::Square;
 use crate::board::{Bitboards};
 use crate::piece::{PieceIndex, Piece};
@@ -140,6 +142,11 @@ impl MoveList{
     pub fn clear(&mut self){
         self.len = 0
     }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool{
+        self.len == 0
+    }
 }
 
 
@@ -228,6 +235,7 @@ impl Debug for BitMove{
     }
 }
 
+
 pub struct MovePath<const DEPTH: usize>{
     moves: [BitMove; DEPTH],
     len: usize
@@ -253,6 +261,13 @@ impl <const DEPTH: usize> MovePath<DEPTH>{
     }
     pub const fn capacity(&self) -> usize{
         DEPTH
+    }
+
+    pub fn get(&self, idx: usize) -> Option<BitMove>{
+        if idx >= self.len{
+            return None
+        }
+        Some(self.moves[idx])
     }
 
 
@@ -282,6 +297,7 @@ impl <const DEPTH: usize> MovePath<DEPTH>{
         }
         Some(self.moves[self.len-1])
     }
+
 }
 
 
@@ -296,3 +312,34 @@ impl<const DEPTH: usize> Clone for MovePath<DEPTH> {
 }
 
 impl<const DEPTH: usize> Copy for MovePath<DEPTH> {}
+
+impl<const DEPTH: usize> Debug for MovePath<DEPTH>{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Move path: ")?;
+        if self.len() == 0{
+            writeln!(f, "No move")?;
+        }
+        for idx in 0..self.len(){
+            write!(f, "  {}  ", self.get(idx).expect("I move trough moves in the length of the path, so this should be legal").to_string())?;
+        }
+        writeln!(f)?;
+        Ok(())
+    }
+}
+
+
+
+
+
+#[test]
+fn test_moves(){
+    let pos = Position::new(None);
+    let legal_moves = MoveGen::legal_moves(&pos);
+    let mut move_path = MovePath::<5>::new_empty();
+    move_path.push(*legal_moves.get(2).unwrap());
+    
+
+    dbg!(move_path);
+    
+
+}

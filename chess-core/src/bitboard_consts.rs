@@ -79,3 +79,7 @@ use crate::board::Bitboard;
 
 
 
+#[test]
+fn test_bitboard_display(){
+    dbg!(CASTLE_EMPTY_BLACK_QUEENSIDE);
+}

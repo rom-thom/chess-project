@@ -1,4 +1,6 @@
-use chess_core::{movegen::{self, MoveGen}, moves::{BitMove, Move, MoveList, MovePath}, position::Color};
+use std::{cmp::{max, min}, fmt::Debug, i32};
+
+use chess_core::{movegen::{self, MoveGen}, moves::{BitMove, Move, MoveList, MovePath}, position::{Color, Position}};
 
 use crate::{serch, static_eval::evaluate};
 
@@ -6,79 +8,82 @@ use crate::{serch, static_eval::evaluate};
 
 
 
-pub fn serch_brute_force<const DEPTH: usize>(move_gen: &mut MoveGen) -> Option<BitMove>{
-    let legal_moves = move_gen.legal_moves();
-    if legal_moves.size() == 0{
-        return None
-    }
-    let mut best_move = legal_moves.get(0).expect("Unposablet. I saw that the size was big enough");
-    
-    move_gen.pos.make_move(best_move);
-    let mut best_eval = serch_brute_force_helper::<DEPTH>(move_gen, DEPTH-1); // al these 3 lines to just give a strating move
-    move_gen.pos.undo_move().expect("I just did a move, so i should be able to undo later");
+pub fn serch_alpha_beta<const DEPTH: usize>(pos: &mut Position, debug_depth: usize) -> (MovePath<DEPTH>, i32){
+    let mut move_path = MovePath::<DEPTH>::new_empty();
+    let alpha = i32::MIN;
+    let beta = i32::MAX;
 
-    for m in legal_moves.iter().skip(1){
-        move_gen.pos.make_move(m);
-        let eval = serch_brute_force_helper::<DEPTH>(move_gen, DEPTH-1);
-        move_gen.pos.undo_move().expect("I just did a move, so i should be able to undo later");
-
-        match move_gen.pos.current.side_to_move {
-            Color::White => {
-                if eval > best_eval {
-                    best_eval = eval;
-                    best_move = m;
-                }
-            }
-            Color::Black => {
-                if eval < best_eval {
-                    best_eval = eval;
-                    best_move = m;
-                }
-            }
-        }
-
-    }
-    Some(*best_move)
+    serch_alpha_beta_helper(pos, DEPTH, debug_depth, &mut move_path, alpha, beta)
 }
 
-fn serch_brute_force_helper<const DEPTH: usize>(move_gen: &mut MoveGen, depth: usize) -> i32{
-    let legal_moves = move_gen.legal_moves();
-    if depth == 0 || legal_moves.size() == 0{
-        return evaluate(&move_gen.pos);
+fn serch_alpha_beta_helper<const DEPTH: usize>(pos: &mut Position, depth: usize, debug_depth: usize, move_path: &mut MovePath<DEPTH>,alpha: i32, beta: i32) -> (MovePath<DEPTH>, i32){
+    let legal_moves = MoveGen::legal_moves(&pos);
+    let mut best_move_path = MovePath::<DEPTH>::new_empty();
+    let mut best_evaluation = None; // i want it to change imedeately after finding the first move without needig to manualy find an eval of the position in the depth i am serching // TODO Maybe change to option later  for clarity
+
+    let (mut local_alpha, mut local_beta) = (alpha, beta);
+
+
+    if depth == 0 || legal_moves.is_empty(){ // When i reach the end of a branch
+        return (move_path.clone(), evaluate(&pos));
     }
 
-    let mut moves_to_evaluate = [0; 218]; // 218 is the most moves posible in a chess position
+    if (DEPTH - depth) < (debug_depth+1) {//?? For debugging
+        dbg!(&move_path);
+    }
 
-    for (idx, m) in legal_moves.iter().enumerate(){
-        move_gen.pos.make_move(m);
-        moves_to_evaluate[idx] = serch_brute_force_helper::<DEPTH>(move_gen, depth-1);
-        move_gen.pos.undo_move().expect("I should be able to undo the move as it has just been done");
+    let maximizing = pos.current.side_to_move == Color::White;
+
+    for m in legal_moves.iter(){
+        pos.make_move(m);
+        move_path.push(*m);
+        let (current_move_path, current_eval) = serch_alpha_beta_helper::<DEPTH>(pos, depth-1, debug_depth, move_path, local_alpha, local_beta);
+        move_path.pop();
+        pos.undo_move().expect("I should be able to undo the move as it has just been done");
+
+        
+
+        // Compare with previous moves:
+        let better = if maximizing {
+            current_eval > best_evaluation.unwrap_or(i32::MIN) // This becomes true if there arent alredy a checkmate inbound i32::MIN and this move is beter than the previous
+        } else {
+            current_eval < best_evaluation.unwrap_or(i32::MAX)
+        };
+
+        if better{
+            best_evaluation = Some(current_eval);
+            best_move_path = current_move_path;
+        }
+
+        let best_eval = best_evaluation.expect("I should be able to get that, as it is has just bean desided above");
+
+
+        if maximizing{
+            local_alpha = max(local_alpha, best_eval);
+        } 
+        else{
+            local_beta = min(local_beta, best_eval);
+        }
+        if local_beta <= local_alpha{
+            break
+        }
+
     }  
 
-    let mut best_move_eval = moves_to_evaluate[0];
 
-    for eval in moves_to_evaluate[0..legal_moves.size()].iter() {
-        // If it is the opponent he wants to return the best for him
-        match move_gen.pos.current.side_to_move {
-            Color::White => {
-                if *eval > best_move_eval {
-                    best_move_eval = *eval;
-                }
-            }
-            Color::Black => {
-                if *eval < best_move_eval {
-                    best_move_eval = *eval;
-                }
-            }
-        }
-    }
-    best_move_eval
+    (best_move_path, best_evaluation.expect("Here should only be a wrong none if there were no legal moves, which i have checkded for i think"))
+
 }
+
+
+
+
 
 
 #[test]
 fn test_serch(){
-    let mut move_gen = MoveGen::from_fen(Some("8/7r/1k4b1/8/7R/n4Q2/PP5P/K7 b - - 0 1"));
-    dbg!(&move_gen.pos);
-    dbg!(serch_brute_force::<3>(&mut move_gen));
+    let mut pos = Position::new(Some("r1bqk2r/pppp1ppp/2n2n2/2b1p3/4P3/2NP1N2/PPP2PPP/R1BQKB1R w KQkq - 2 5"));
+    dbg!(&pos);
+    dbg!(serch_alpha_beta::<5>(&mut pos, 0));
+
 }

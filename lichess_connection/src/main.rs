@@ -1,3 +1,5 @@
+use chess_core::movegen::MoveGen;
+use chess_core::position::Position;
 use dotenv::dotenv;
 use engine::serch;
 use reqwest::Client;
@@ -174,7 +176,7 @@ async fn play_game(
                 };
 
                 if my_turn {
-                    match brute_force_generator(&history) {
+                    match alpha_beta_generator(move_setup(&history)) {
                         Some(uci) => {
                             println!("[{}] Playing move: {}", game_id, uci);
 
@@ -208,19 +210,25 @@ async fn play_game(
 
 
 
-
+fn move_setup(history:  &[&str]) -> Position{
+    let mut pos = Position::new(None); // We are starting from the starting_ position
+    for mov in history{
+        pos.make_move(&MoveGen::stringmove_to_bitmove(&pos, mov).expect("Couldn't convert move recieved from liches to bitmove"));
+    };
+    pos
+}
 
 use chess_core::{piece::Piece, *};
 use rand::Rng;
 
 /// `history` is the list of all past UCI moves in the game so far.
 fn random_move(history: &[&str]) -> Option<String> { // random for now // TODO here is where i should generate the move
-    let mut move_gen = movegen::MoveGen::from_fen(None); // We are starting from the starting_ position
+    let mut pos = Position::new(None); // We are starting from the starting_ position
     for mov in history{
-        move_gen.pos.make_move(&move_gen.stringmove_to_bitmove(mov).expect("Couldn't convert move recieved from liches to bitmove"));
+        pos.make_move(&MoveGen::stringmove_to_bitmove(&pos,mov).expect("Couldn't convert move recieved from liches to bitmove"));
     };
     let mut legal_moves = moves::MoveList::new_empty();
-    move_gen.fill_legal(&mut legal_moves);
+    MoveGen::fill_legal(&pos, &mut legal_moves);
 
 
     // if no legal moves, game is over
@@ -233,13 +241,13 @@ fn random_move(history: &[&str]) -> Option<String> { // random for now // TODO h
             good_moves.add(*i);
             continue;
         }
-        move_gen.pos.make_move(i);
-        let opp = move_gen.legal_moves();
+        pos.make_move(i);
+        let opp = MoveGen::legal_moves(&pos);
         if opp.size() == 0{
-            move_gen.pos.current.side_to_move = !move_gen.pos.current.side_to_move;
-            let my_2 = move_gen.legal_moves();
+            pos.current.side_to_move = !pos.current.side_to_move;
+            let my_2 = MoveGen::legal_moves(&pos);
             for my_move in my_2.iter(){
-                if let Some(piece_index) = move_gen.pos.current.bitboards.piece_on_square(my_move.get_end_square()){
+                if let Some(piece_index) = pos.current.bitboards.piece_on_square(my_move.get_end_square()){
                     if piece_index.to_piece() == Piece::King{
                         return Some(i.to_string());
                     }
@@ -247,9 +255,9 @@ fn random_move(history: &[&str]) -> Option<String> { // random for now // TODO h
                 
                 continue;
             }
-            move_gen.pos.current.side_to_move = !move_gen.pos.current.side_to_move;
+            pos.current.side_to_move = !pos.current.side_to_move;
         }
-        move_gen.pos.undo_move().expect("couldn't undo move i just did");
+        pos.undo_move().expect("couldn't undo move i just did");
     }
     if good_moves.size() == 0{
         good_moves = legal_moves;
@@ -267,15 +275,23 @@ fn random_move(history: &[&str]) -> Option<String> { // random for now // TODO h
 
 
 
-fn brute_force_generator(history:  &[&str]) -> Option<String>{
-        let mut move_gen = movegen::MoveGen::from_fen(None); // We are starting from the starting_ position
-    for mov in history{
-        move_gen.pos.make_move(&move_gen.stringmove_to_bitmove(mov).expect("Couldn't convert move recieved from liches to bitmove"));
-    };
+fn alpha_beta_generator(mut pos: Position) -> Option<String>{
+
     let mut legal_moves = moves::MoveList::new_empty();
-    move_gen.fill_legal(&mut legal_moves);
+    MoveGen::fill_legal(&pos, &mut legal_moves);
 
 
-    let bm = serch::serch_brute_force::<3>(&mut move_gen).expect("No move for some reason");
-    Some(bm.to_string())
+    let bm_path = serch::serch_alpha_beta::<3>(&mut pos, 1);
+
+    let bm = if bm_path.0.is_empty() {
+        String::new()
+    } else {
+        bm_path.0
+            .get(0)
+            .expect("should have been able to unpack this move")
+            .to_string()
+    };
+    Some(bm)
 }
+
+
