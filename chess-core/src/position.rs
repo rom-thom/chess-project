@@ -32,7 +32,7 @@ impl std::fmt::Display for Color{
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq)] // Do not derive Clone, as i dont want to do that in a time critical way
 pub struct Position{
     pub current: Snapshot,
 

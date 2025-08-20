@@ -1,8 +1,8 @@
 
 
 
-use crate::attack;
-use crate::piece::PieceIndex;
+use crate::bitboard_consts;
+use crate::piece::{Piece, PieceIndex};
 use crate::position::{Color, Position};
 use crate::square::{Square};
 use crate::board::Bitboard;
@@ -116,7 +116,7 @@ pub fn knight_attacks(square: Square)-> Bitboard{
     }
     result_board
 }
-pub fn pawn_moves(square: Square, all_occ: Bitboard, color : Color)-> Bitboard{
+pub fn pawn_moves(square: Square, all_occ: Bitboard, color : Color)-> Bitboard{ // TODO Add a bulck pawn move fnction that finds all the squares in a few shifts (look it up)
     let origin = Bitboard::from(square.index());
     let (row, _) = Bitboard::index_to_coord(square.index());
     let mut temp = origin;
@@ -155,7 +155,7 @@ pub fn pawn_moves(square: Square, all_occ: Bitboard, color : Color)-> Bitboard{
 
 
 #[inline]
-pub fn pawn_attacks(sq: Square, color: Color) -> Bitboard { 
+pub fn pawn_attacks(sq: Square, color: Color) -> Bitboard { // Does not check if they are allowed, just where they are
     let sq_bb = Bitboard::from(sq.index());
 
     match color {
@@ -175,7 +175,7 @@ pub fn pawn_attacks(sq: Square, color: Color) -> Bitboard {
 }
 
 
-pub fn get_attacks(piece:PieceIndex, square: Square, all_occ: Bitboard, color : Color)-> Bitboard{
+pub fn get_moves(piece:PieceIndex, square: Square, all_occ: Bitboard, color : Color)-> Bitboard{
     match piece {
         PieceIndex::WhitePawn | PieceIndex::BlackPawn => {
             pawn_moves(square, all_occ, color)
@@ -197,6 +197,29 @@ pub fn get_attacks(piece:PieceIndex, square: Square, all_occ: Bitboard, color : 
         }
     }
 }
+pub fn get_attacks(piece:Piece, square: Square, all_occ: Bitboard, color : Color)-> Bitboard{
+    match piece {
+        Piece::Pawn => {
+            pawn_attacks(square, color)
+        }
+        Piece::Knight => {
+            knight_attacks(square)
+        }
+        Piece::Bishop => {
+            bishop_attacks(square, all_occ)
+        }
+        Piece::Rook => {
+            rook_attacks(square, all_occ)
+        }
+        Piece::Queen => {
+            queen_attacks(square, all_occ)
+        }
+        Piece::King => {
+            king_attacks(square)
+        }
+    }
+}
+
 
 
 

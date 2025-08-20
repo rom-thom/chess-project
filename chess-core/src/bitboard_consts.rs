@@ -81,5 +81,7 @@ use crate::board::Bitboard;
 
 #[test]
 fn test_bitboard_display(){
-    dbg!(CASTLE_EMPTY_BLACK_QUEENSIDE);
+    dbg!(CASTLE_EMPTY_BLACK_KINGSIDE);
+    dbg!(CASTLE_PATH_BLACK_KINGSIDE);
+
 }

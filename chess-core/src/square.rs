@@ -81,6 +81,13 @@ impl Square {
         }
     }
 
+    pub fn row(&self) -> u8{
+        self.index() / 8
+    }
+    pub fn col(&self) -> u8{
+        self.index() % 8
+    }
+
     pub fn from_idx(idx: u8) -> Option<Square> {
         if idx < 64 {
             Some(unsafe { std::mem::transmute(idx as u8) })
@@ -114,5 +121,5 @@ impl Square {
 
 #[test]
 fn test_square(){
-    dbg!(Square::A8 as u8);
+    dbg!(Square::A8.col());
 }

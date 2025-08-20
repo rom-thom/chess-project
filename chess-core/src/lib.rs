@@ -10,6 +10,7 @@ pub mod bitboard_consts;
 pub mod movegen;
 pub mod test_core;
 pub mod move_convertion;
+pub mod movegen_per_piece;
 
 #[cfg(test)]
 mod tests {

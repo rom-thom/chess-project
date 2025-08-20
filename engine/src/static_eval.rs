@@ -5,10 +5,10 @@ use chess_core::position::{Color, Position};
 use chess_core::piece::PieceIndex;
 use chess_core::board::Bitboards;
 
-
+pub const INF: i32 = 300_000; // Making that not overflow, like ever
 const VALS: [i32; 5] = [100, 320, 330, 500, 900]; // P,N,B,R,Q // ?can be local as i wil only use the evaluate function later i think
 
-// Low-level, pure, easy to unit-test
+// Low-level, pure, easy to unit-test (chat did this function)
 #[inline(always)]
 fn material_from_bitboards(bb: &Bitboards, color: Color) -> i32 {
     let pcs = bb.color_slice(color);           // [P,N,B,R,Q,K]
@@ -22,11 +22,15 @@ fn material_from_bitboards(bb: &Bitboards, color: Color) -> i32 {
 // Public API – flexible to evolve later
 #[inline]
 pub fn evaluate_material(pos: &Position) -> i32 {
-    // If you add a material cache, return it here:
+    // If i add a material cache (when i find out what that is), return it here:
     // return pos.material_cache[color as usize];
 
-    material_from_bitboards(&pos.current.bitboards, pos.current.side_to_move) + 
-    material_from_bitboards(&pos.current.bitboards, !pos.current.side_to_move)
+    let eval = material_from_bitboards(&pos.current.bitboards, pos.current.side_to_move) + 
+    material_from_bitboards(&pos.current.bitboards, !pos.current.side_to_move);
+    match pos.current.side_to_move { // This makes it advantage for side to move => positive number
+        Color::Black => -eval,
+        Color::White => eval
+    }
 }
 
 
@@ -35,13 +39,8 @@ pub fn evaluate_material(pos: &Position) -> i32 {
 // TODO this should be a lot more extensive, looking at the positional state and so on
 pub fn evaluate(pos: &Position) -> i32 { 
 
-    if pos.is_check_mate(){
-        match pos.current.side_to_move {
-            Color::White => {return i32::MIN},
-            Color::Black => {return i32::MAX}
-        }
-    }
 
+    
     evaluate_material(pos)
 }
 
@@ -51,4 +50,5 @@ pub fn evaluate(pos: &Position) -> i32 {
 fn test_eval(){
     let pos = Position::new(Some("8/3k4/5q2/8/5Q2/3K4/8/8 w - - 0 1"));
     dbg!(evaluate(&pos));
+    dbg!(INF - i32::MAX);
 }

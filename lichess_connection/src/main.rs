@@ -213,7 +213,8 @@ async fn play_game(
 fn move_setup(history:  &[&str]) -> Position{
     let mut pos = Position::new(None); // We are starting from the starting_ position
     for mov in history{
-        pos.make_move(&MoveGen::stringmove_to_bitmove(&pos, mov).expect("Couldn't convert move recieved from liches to bitmove"));
+        let str_move = MoveGen::stringmove_to_bitmove(&mut pos,mov).expect("Couldn't convert move recieved from liches to bitmove");
+        pos.make_move(&str_move);
     };
     pos
 }
@@ -225,10 +226,11 @@ use rand::Rng;
 fn random_move(history: &[&str]) -> Option<String> { // random for now // TODO here is where i should generate the move
     let mut pos = Position::new(None); // We are starting from the starting_ position
     for mov in history{
-        pos.make_move(&MoveGen::stringmove_to_bitmove(&pos,mov).expect("Couldn't convert move recieved from liches to bitmove"));
+        let str_move = MoveGen::stringmove_to_bitmove(&mut pos,mov).expect("Couldn't convert move recieved from liches to bitmove");
+        pos.make_move(&str_move);
     };
     let mut legal_moves = moves::MoveList::new_empty();
-    MoveGen::fill_legal(&pos, &mut legal_moves);
+    MoveGen::fill_legal(&mut pos, &mut legal_moves);
 
 
     // if no legal moves, game is over
@@ -242,10 +244,10 @@ fn random_move(history: &[&str]) -> Option<String> { // random for now // TODO h
             continue;
         }
         pos.make_move(i);
-        let opp = MoveGen::legal_moves(&pos);
+        let opp = MoveGen::legal_moves(&mut pos);
         if opp.size() == 0{
             pos.current.side_to_move = !pos.current.side_to_move;
-            let my_2 = MoveGen::legal_moves(&pos);
+            let my_2 = MoveGen::legal_moves(&mut pos);
             for my_move in my_2.iter(){
                 if let Some(piece_index) = pos.current.bitboards.piece_on_square(my_move.get_end_square()){
                     if piece_index.to_piece() == Piece::King{
@@ -278,10 +280,10 @@ fn random_move(history: &[&str]) -> Option<String> { // random for now // TODO h
 fn alpha_beta_generator(mut pos: Position) -> Option<String>{
 
     let mut legal_moves = moves::MoveList::new_empty();
-    MoveGen::fill_legal(&pos, &mut legal_moves);
+    MoveGen::fill_legal(&mut pos, &mut legal_moves);
 
 
-    let bm_path = serch::serch_alpha_beta::<3>(&mut pos, 1);
+    let bm_path = serch::serch_alpha_beta_negamax::<6>(&mut pos, 0);
 
     let bm = if bm_path.0.is_empty() {
         String::new()

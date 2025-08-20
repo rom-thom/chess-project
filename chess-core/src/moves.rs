@@ -317,12 +317,11 @@ impl<const DEPTH: usize> Debug for MovePath<DEPTH>{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Move path: ")?;
         if self.len() == 0{
-            writeln!(f, "No move")?;
+            write!(f, "No move")?;
         }
         for idx in 0..self.len(){
             write!(f, "  {}  ", self.get(idx).expect("I move trough moves in the length of the path, so this should be legal").to_string())?;
         }
-        writeln!(f)?;
         Ok(())
     }
 }
@@ -333,8 +332,8 @@ impl<const DEPTH: usize> Debug for MovePath<DEPTH>{
 
 #[test]
 fn test_moves(){
-    let pos = Position::new(None);
-    let legal_moves = MoveGen::legal_moves(&pos);
+    let mut pos = Position::new(None);
+    let legal_moves = MoveGen::legal_moves(&mut pos);
     let mut move_path = MovePath::<5>::new_empty();
     move_path.push(*legal_moves.get(2).unwrap());
     

@@ -1,5 +1,7 @@
 
 
+
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CastlingSide{
     WK = 1, // Kvit Konge

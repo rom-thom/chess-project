@@ -58,6 +58,7 @@ impl Piece{
 
 
 
+
 #[repr(usize)]
 #[derive(Copy, Clone, Debug, TryFromPrimitive, Default, PartialEq, Eq)]
 pub enum PieceIndex {

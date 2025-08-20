@@ -185,7 +185,7 @@ impl Bitboard {
         let lsb: u32 = self.0.trailing_zeros(); // this is the amount of zeros behind the first 1
         self.0 &= self.0 - 1; // This is cooool, and works because: 
                                         // bb:           10110000
-                                        // bb - 1:       10101111 
+                                        // bb - 1:       10101111
                                         // bb & (bb-1) = 10100000 which is bb without lsb
         Some(lsb as u8)
     }

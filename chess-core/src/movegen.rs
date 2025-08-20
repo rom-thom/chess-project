@@ -1,4 +1,5 @@
 
+use crate::attack::{get_attacks, get_moves};
 use crate::board::{Bitboards, Bitboard};
 use crate::moves::{BitMove, MoveList, MoveType};
 use crate::piece::{Piece, PieceIndex};
@@ -17,204 +18,82 @@ impl MoveGen {
 
     // Move generation (finds only the one for the color that currently is to move)
     // Finds all the pseudo legal (legal except for checks) moves in that position
-    // TODO Split this into moves per piece, like fn generate_pawn_moves(&self, list: &mut MoveList); and so on for every piece
-    pub fn pseudo_legal(pos: &Position, move_list: &mut MoveList){
-            let all_occ = pos.current.bitboards.all_occupancy;
+     pub fn pseudo_legal(pos: &Position, mut move_list: &mut MoveList){
         let color = pos.current.side_to_move;
-        
-        let (my_occ, opponent_occ) = match pos.current.side_to_move {
-            Color::White => (pos.current.bitboards.white_occupancy, pos.current.bitboards.black_occupancy),
-            Color::Black => (pos.current.bitboards.black_occupancy, pos.current.bitboards.white_occupancy)
-        };
 
-        let mut my_occ_loop = my_occ; // represents the pieces that i haven't accesed yet
+        // This just takes kare of the Quiet moves for those pieces
+        MoveGen::generate_normal_piece_moves(pos, Piece::Bishop, color, &mut move_list);
+        MoveGen::generate_normal_piece_moves(pos, Piece::Knight, color, &mut move_list);
+        MoveGen::generate_normal_piece_moves(pos, Piece::Rook, color, &mut move_list);
+        MoveGen::generate_normal_piece_moves(pos, Piece::Queen, color, &mut move_list);
+        MoveGen::generate_normal_piece_moves(pos, Piece::King, color, &mut move_list);
 
+        MoveGen::generate_kastling_moves(pos, color, &mut move_list);
+        MoveGen::generate_pawn_moves(pos, color, &mut move_list);
 
-
-        'start_loopy: loop{
-            let idx = match my_occ_loop.pop_lsb() {
-                Some(index) => index,
-                None=> break 'start_loopy // no name needed, but loopy is a cute name so i'll keep it
-            };
-            let start_square = Square::from_idx(idx).expect("Nr 1. Position::pseudo_legal finds an index outside of the square.");
-            let (start_row, start_col) = start_square.to_coord();
-
-            // TODO This should probably be changed when implementing Mailbox (to only look for the color you are searching)
-            let piece_index = pos.current.bitboards.piece_on_square(start_square)
-                                                          .expect("Position::pseudo_legal does not find a piece where it should be, as the index should be where the piece is.");
-
-            let piece = Piece::from_piece_index(&piece_index);
-
-            let mut attacks = attack::get_attacks(piece_index, start_square, all_occ, color);
-            attacks &= !my_occ;
-
-
-            let mut has_castled = false;
-
-            'attack_loop: loop{
-                let attack_idx = match attacks.pop_lsb() {
-                    Some(attack_index) => attack_index,
-                    None => break 'attack_loop
-                };
-                
-                let end_square = Square::from_idx(attack_idx).expect("Nr 2. Position::pseudo_legal finds an index outside of the square.");
-                let (end_row, end_col) = end_square.to_coord();
-
-                let mut is_capture = opponent_occ.is_occupied(end_square);
-
-                let mut move_type = MoveType::Quiet;
-
-                if piece_index == PieceIndex::WhitePawn || piece_index == PieceIndex::BlackPawn{
-                    if start_col != end_col{
-
-                        'diagonal_pawn: {
-                        match pos.current.en_passant {
-                            Some(en_passant_square) => {
-                                if end_square == en_passant_square{
-                                    is_capture = true;
-                                    move_type = MoveType::EnPassant;
-                                    break 'diagonal_pawn;
-                                }
-
-                            },
-                            None=>()
-                        }
-                        if !opponent_occ.is_occupied(end_square){
-                            continue 'attack_loop;
-                        }
-                        }
-                    }
-                    if start_col == end_col {
-                        if piece_index == PieceIndex::WhitePawn && start_row == 1 && end_row == 3 {
-                            move_type = MoveType::EnPassant;
-                        } else if piece_index == PieceIndex::BlackPawn && start_row == 6 && end_row == 4 {
-                            move_type = MoveType::EnPassant;
-                        }
-                    }
-                    
-                    
-
-                    if end_row == 0 || end_row == 7{ // Premotion
-
-                        let promo_piece_list = [Piece::Bishop, Piece::Knight, Piece::Rook, Piece::Queen];
-
-                        for promo_piece in promo_piece_list{
-                            move_type = MoveType::Promotion(promo_piece);
-                            move_list.add(BitMove::new(start_square, end_square, is_capture, move_type));
-                        }
-                        continue 'attack_loop;
-                    }
-
-                }
-
-                // Handle castling (it can castle if can_castle variable is set for that side and pieces are cleared)
-                if piece == Piece::King && !has_castled {
-                    has_castled = true;
-                    const BB_MASKS: [(CastlingSide, Square, Bitboard); 4] = [
-                        (CastlingSide::WK, Square::G1, Bitboard::new_const(0x60)), // The bitboards represent the squares between king and rook
-                        (CastlingSide::WQ, Square::C1, Bitboard::new_const(0x0E)),
-                        (CastlingSide::BK, Square::G8, Bitboard::new_const(0x6000000000000000)),
-                        (CastlingSide::BQ, Square::C8, Bitboard::new_const(0x0E00000000000000)),
-                    ];
-
-                    for (side, target_square, mask) in BB_MASKS.iter().cloned() {
-                        let is_right_color = match (color, side) {
-                            (Color::White, CastlingSide::WK | CastlingSide::WQ) => true,
-                            (Color::Black, CastlingSide::BK | CastlingSide::BQ) => true,
-                            _ => false,
-                        };
-
-                        if is_right_color
-                            && pos.current.castling.can_castle(side)
-                            && !all_occ.intersects(mask) // makes shure no piece is between rook and king
-                        {
-                            move_list.add(BitMove::new(
-                                start_square,
-                                target_square,
-                                false,
-                                MoveType::Castling(Imposter::from_castling_side(side)),
-                            ));
-                        }
-                    }
-                }
-
-
-
-                move_list.add(BitMove::new(start_square, end_square, is_capture, move_type));
-                }
-            }
   }
 
-    // TODO I should swap this out for faster check for wether it is ilegal or not
-    // checks if the move generates a check and thus is legal or not (it also finds wether it castles trough check or away from it)
-    pub fn makes_self_check(pos: &Position, mov: BitMove) -> bool{
-        let mut temp_pos = pos.clone();
-        let moving_color = temp_pos.current.side_to_move;
-        temp_pos.make_move(&mov);
 
-        let mut move_list = MoveList::new_empty();
 
-        let self_king = match moving_color {
-            Color::Black => PieceIndex::BlackKing,
-            Color::White => PieceIndex::WhiteKing
-        };
 
+
+
+
+
+
+
+    // mutable so that i dont need to clone (it is not changed)
+    pub fn makes_self_check(pos: &mut Position, mov: BitMove) -> bool{
+        let moving_color = pos.current.side_to_move;
+
+
+        pos.make_move(&mov);
+        
+
+        if pos.in_check(moving_color){
+            pos.undo_move().expect("i did at the start of this fnction do a move, and so this should work");
+            return true
+        }
+
+        // At this point we know the king is not in check after the move
+        //  if it ain't castling, then it's now legal
+        if mov.get_castle_side().is_none(){
+            pos.undo_move().expect("i did at the start of this fnction do a move, and so this should work");
+            return false;
+        }
 
         // Finds the path the king has to move trough. Used for finding wether opponent attacks that square
-        let kastle_path_opt = mov.get_castle_side().map(|castle_side|{
+        let mut kastle_path = mov.get_castle_side().map(|castle_side|{
             match (moving_color, castle_side) {
                 (Color::White, Imposter::King)  => bitboard_consts::CASTLE_PATH_WHITE_KINGSIDE,
                 (Color::White, Imposter::Queen) => bitboard_consts::CASTLE_PATH_WHITE_QUEENSIDE,
                 (Color::Black, Imposter::King)  => bitboard_consts::CASTLE_PATH_BLACK_KINGSIDE,
                 (Color::Black, Imposter::Queen) => bitboard_consts::CASTLE_PATH_BLACK_QUEENSIDE,
             }
-        }); 
+        }).expect("At this point the move should be castling as i just checked for that"); 
 
-        // Finds wether the opponent can capture the king in the next move, or wether you move trough attack in castling
-        MoveGen::pseudo_legal(&temp_pos, &mut move_list);
-        for oponents_move in move_list.iter(){
-            let target = oponents_move.get_end_square();
 
-            if temp_pos.current.bitboards.piece_on_square(target) == Some(self_king){
-                return true
-            }
 
-            if let Some(castling_path) = kastle_path_opt{
-                if castling_path.intersects(target.to_bitboard()){ 
-                    return true;
-                }
+
+
+        while let Some(kastle_path_idx) = kastle_path.pop_lsb() {
+            if pos.is_square_attacked(Square::from_idx(kastle_path_idx).expect("Here should be an index of the board as i use pop_lsb"), !moving_color){
+                pos.undo_move().expect("i did at the start of this fnction do a move, and so this should work");
+                return true;
             }
         }
 
-        // I have to loop trough all the posible opponents moves as if hadnt moved yet because else i ignore the fact that the pawn looses the ability to attack the king if it kastles away, but it shouldnt e able to castle away when the pawn is attacking.
-        if let Err(e) = temp_pos.undo_move(){
-            panic!("temp_pos should have just made a move, so it shouldnt be an errror here, in makes_self_check: {}", e);
+        pos.undo_move().expect("i did at the start of this fnction do a move, and so this should work");
+        // it cant castle if it is attacked before the castling
+        if pos.in_check(moving_color){
+            return true
         }
-        match mov.get_castle_side() {
-            None => {},
-            Some(_)=>{
-                move_list.clear();
-                temp_pos.current.side_to_move = !temp_pos.current.side_to_move; // i have to flip the colors to make the oponent be able to see every square (to check for kastling edgecase)
-                MoveGen::pseudo_legal(&temp_pos, &mut move_list);
-                for oponents_move in move_list.iter(){
-                    let target = oponents_move.get_end_square();
-                    let self_king_pos = match moving_color {
-                        Color::Black => bitboard_consts::BLACK_KING,
-                        Color::White => bitboard_consts::WHITE_KING
-                    };
-                    if self_king_pos.intersects(target.to_bitboard()){
-                        return true;
-                    }
-                }
-            }
 
-        }
-        
         false
     }
 
-    // TODO This should probably change to a faster way, but for now i am to lacy
-    pub fn fill_legal(pos: &Position, move_list: &mut MoveList){
+
+    pub fn fill_legal(pos: &mut Position, move_list: &mut MoveList){
             move_list.clear();
 
             let mut list = MoveList::new_empty();
@@ -228,14 +107,14 @@ impl MoveGen {
         }
 
         #[inline]
-    pub fn legal_moves(pos: &Position)->MoveList{
+    pub fn legal_moves(pos: &mut Position)->MoveList{
         let mut move_list = MoveList::new_empty();
         MoveGen::fill_legal(pos, &mut move_list);
         move_list
     }
 
       // returns the move from  // ? it is very slow so dont use it for timecritical things
-    pub fn stringmove_to_bitmove(pos: &Position, moves_str: &str)->Result<BitMove, String>{
+    pub fn stringmove_to_bitmove(pos: &mut Position, moves_str: &str)->Result<BitMove, String>{
         // This finds the last move as that is all we need for the engine, and if the string is weird, it removes mitaken extra spaces
         let last_move = moves_str.split(" ")
                                        .filter(|s| !s.is_empty())
@@ -267,13 +146,15 @@ impl MoveGen {
             lm.iter().any(|m|(*m) == candidate_move)
         };
 
+
         if !is_legal{
             return Err(String::from("That is an ilegal move"));
         }
 
-
         Ok(pos.expand_move(start_square, end_square, promotion_piece))
     }
+
+    
 
     pub fn captures(&self, out: &mut MoveList){
         // TODO add a list that only looks at captures
@@ -458,8 +339,7 @@ impl Position{
 
 
     #[inline(always)]
-    pub fn in_check(&self) -> bool { // TODO Add attack table to loop trough what the opponent attack
-        let color = self.current.side_to_move;
+    pub fn in_check(&self, color: Color) -> bool { // TODO Add attack table to loop trough what the opponent attack
         let ksq = self.current
             .bitboards
             .get_bitboard(PieceIndex::from_piece(Piece::King, color))
@@ -470,9 +350,26 @@ impl Position{
         self.is_square_attacked(ksq, !color)
     }
 
+    pub fn attacked_squares_bb(&self, by: Color) -> Bitboard{
+        let all_occ   = self.current.bitboards.all_occupancy;
+        let by_slice  = self.current.bitboards.color_slice(by);
+
+        let mut attacking_bb = Bitboard::new_empty();
+
+        for (nr, bb) in by_slice.iter().enumerate(){
+            let mut loop_bb = bb.clone();
+            while let Some(board_idx) = loop_bb.pop_lsb(){
+                attacking_bb |= get_attacks(Piece::try_from(nr as u8).expect("The index that was suposed to be piece number exceded it"), Square::from_idx(board_idx).expect("Board idx from pop_lsb gave an index out of reach"), all_occ, by);
+            }
+        }
+        attacking_bb
+        
+    }
+
+
     #[inline]
     pub fn is_square_attacked(&self, sq: Square, by: Color) -> bool {
-        // Pseudo-legal control only (pins/king-safety ignored)
+        // Pseudolegal (pins/king-safety ignored)
         let all_occ   = self.current.bitboards.all_occupancy;
         let by_slice  = self.current.bitboards.color_slice(by);
 
@@ -483,28 +380,28 @@ impl Position{
         let queen_occ  = by_slice[Piece::Queen.to_index()];
         let king_occ   = by_slice[Piece::King.to_index()];
 
-        // Sliders (reverse-from-target works because your *_attacks include the first blocker)
+        // Looks if attacks from the square can attack one of the opponents
         if attack::rook_attacks(sq, all_occ).intersects(rook_occ | queen_occ)   { return true; }
         if attack::bishop_attacks(sq, all_occ).intersects(bishop_occ | queen_occ){ return true; }
 
-        // Non-sliders (symmetric masks)
+
         if attack::knight_attacks(sq).intersects(knight_occ) { return true; }
         if attack::king_attacks(sq).intersects(king_occ)     { return true; }
 
-        // Pawns: from target `sq`, attackers are in the opposite-direction mask; hence `!by`.
-        // This yields the two *potential* attacker squares; intersect with actual pawns.
+        // Pawns: from target `sq`, attackers are in the opposite-direction mask => `!by`.
+
         if attack::pawn_attacks(sq, !by).intersects(pawn_occ) { return true; }
 
         false
     }
     
     #[inline]
-    pub fn is_check_mate(&self) -> bool{
+    pub fn is_check_mate(&mut self) -> bool{
 
-        self.in_check() && !self.can_move()
+        self.in_check(self.current.side_to_move) && !self.can_move()
     }
 
-    pub fn can_move(&self) -> bool{
+    pub fn can_move(&mut self) -> bool{
         !MoveGen::legal_moves(self).is_empty()
     }
 }
@@ -531,7 +428,7 @@ mod test{
         dbg!(&position);
         let mut rng = rand::rng();
         for i in 0..50{
-            let moves = MoveGen::legal_moves(&position);
+            let moves = MoveGen::legal_moves(&mut position);
             let nr = rng.random_range(0..moves.size());
             position.make_move(moves.get(nr).unwrap());
             dbg!(position.current.bitboards.all_occupancy);
@@ -542,9 +439,10 @@ mod test{
 #[test]
 fn test_attack(){
 
-    let position = Position::new(Some("rnb2bnr/p4k1p/1pppqp1p/4p3/2Q1P1B1/3P4/PPP2PPP/RN2K1NR b KQ - 1 10"));
+    let mut position = Position::new(Some("8/6k1/4p3/8/2b3Q1/2Kr4/8/8 w - - 0 1"));
     dbg!(&position);
 
-    let s = position.is_square_attacked(Square::G4, Color::Black);
-    dbg!(s);
+    let b = position.is_square_attacked(Square::F5, Color::Black);
+    dbg!(b);
+
 }
