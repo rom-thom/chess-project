@@ -109,6 +109,11 @@ fn test_count(){
 
 #[test]
 fn test_speed(){
+    dbg!("Previous results: ");
+    dbg!("23 s");
+    dbg!("13 s");
+    dbg!("3.9 s");
     let mut pos = Position::new(Some("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+    dbg!(&pos);
     dbg!(_outer_perft(&mut pos, 4));
 }

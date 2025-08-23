@@ -28,8 +28,10 @@ fn serch_alpha_beta_negamax_helper<const DEPTH: usize>(mut pos: &mut Position, d
     // alpha is pased down as -beta and vise versa, and we only ever change the alpha as we just change what we can improve ourselves (we cant change what the opponent else where can do)
     let mut local_alpha = alpha;
 
-
-    if legal_moves.is_empty(){
+    if pos.current.halfmove_clock == 50{
+        return (move_path.clone(), 0);
+    }
+    if legal_moves.is_empty() {
         if pos.in_check(pos.current.side_to_move){
             return (move_path.clone(), -INF)
         }
@@ -38,7 +40,7 @@ fn serch_alpha_beta_negamax_helper<const DEPTH: usize>(mut pos: &mut Position, d
         }
     }
     if depth == 0{ // When i reach the end of a branch
-        // TODO look for wether it can capture, and go deeper down that path until nåwån can capture
+        // TODO look for wether it can capture, and go deeper down that path until no one can capture
 
 
         return (move_path.clone(), evaluate(&pos));
@@ -120,7 +122,9 @@ fn serch_alpha_beta_negamax_helper_deeper_capture<const DEPTH: usize>(mut pos: &
     // alpha is pased down as -beta and vise versa, and we only ever change the alpha as we just change what we can improve ourselves (we cant change what the opponent else where can do)
     let mut local_alpha = alpha;
 
-
+    if pos.current.halfmove_clock == 50{
+        return (move_path.clone(), 0);
+    }
     if legal_moves.is_empty(){
         if pos.in_check(pos.current.side_to_move){
             return (move_path.clone(), -INF)

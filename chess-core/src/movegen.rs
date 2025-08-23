@@ -20,16 +20,17 @@ impl MoveGen {
     // Finds all the pseudo legal (legal except for checks) moves in that position
      pub fn pseudo_legal(pos: &Position, mut move_list: &mut MoveList){
         let color = pos.current.side_to_move;
+        MoveGen::generate_group_pawn_moves(pos, color, &mut move_list);
 
         // This just takes kare of the Quiet moves for those pieces
         MoveGen::generate_normal_piece_moves(pos, Piece::Bishop, color, &mut move_list);
         MoveGen::generate_normal_piece_moves(pos, Piece::Knight, color, &mut move_list);
         MoveGen::generate_normal_piece_moves(pos, Piece::Rook, color, &mut move_list);
         MoveGen::generate_normal_piece_moves(pos, Piece::Queen, color, &mut move_list);
-        MoveGen::generate_normal_piece_moves(pos, Piece::King, color, &mut move_list);
 
         MoveGen::generate_kastling_moves(pos, color, &mut move_list);
-        MoveGen::generate_pawn_moves(pos, color, &mut move_list);
+        MoveGen::generate_normal_piece_moves(pos, Piece::King, color, &mut move_list);
+
 
   }
 

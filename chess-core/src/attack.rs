@@ -174,6 +174,74 @@ pub fn pawn_attacks(sq: Square, color: Color) -> Bitboard { // Does not check if
     }
 }
 
+#[inline]  
+pub fn pawn_groupe_straight_moves(pos: &Position, color: Color) -> (Bitboard, Bitboard){ // Returns 2 differente types of straight push (single_push, double_push)
+    let my_pawns = pos.current.bitboards.boards.get(PieceIndex::from_piece(Piece::Pawn, color).index()).expect("I should be able to acces ");
+    let all_occ = pos.current.bitboards.all_occupancy;
+
+    let mut single_push = *my_pawns;
+
+    match color {
+        Color::Black =>{
+            single_push.shift_down();
+            single_push &= !all_occ; // Seing if there is a piece on the square in front of the pawn
+            let mut double_push = single_push & bitboard_consts::RANK_6; // Finding the pawns that are on the correct rank to double push
+            double_push.shift_down();
+            double_push &= !all_occ; // Adding the double push if it is alowed
+            (single_push, double_push)
+        }
+        Color::White =>{
+            single_push.shift_up();
+            single_push &= !all_occ; // Seing if there is a piece on the square in front of the pawn
+            let mut double_push = single_push & bitboard_consts::RANK_3; // Finding the pawns that are on the correct rank to double push
+            double_push.shift_up();
+            double_push &= !all_occ; // Adding the double push if it is alowed
+            (single_push, double_push)
+        }
+    }
+}
+
+#[inline] 
+pub fn pawn_groupe_attacks_right(pos: &Position, color: Color)->Bitboard{
+    let my_pawns = pos.current.bitboards.boards.get(PieceIndex::from_piece(Piece::Pawn, color).index()).expect("I should be able to acces ");
+
+    let mut shift_pawns: Bitboard = *my_pawns;
+
+    match color {
+        Color::Black =>{
+            shift_pawns.shift_down_right();
+            shift_pawns
+        }
+        Color::White =>{
+
+            shift_pawns.shift_upp_right();
+            shift_pawns
+        }
+    }
+}
+#[inline] 
+pub fn pawn_groupe_attacks_left(pos: &Position, color: Color)->Bitboard{
+    let my_pawns = pos.current.bitboards.boards.get(PieceIndex::from_piece(Piece::Pawn, color).index()).expect("I should be able to acces ");
+
+    let mut shift_pawns: Bitboard = *my_pawns;
+
+    match color {
+        Color::Black =>{
+            shift_pawns.shift_down_left();
+            shift_pawns
+        }
+        Color::White =>{
+            shift_pawns.shift_upp_left();
+            shift_pawns
+        }
+    }
+}
+
+
+
+
+
+
 
 pub fn get_moves(piece:PieceIndex, square: Square, all_occ: Bitboard, color : Color)-> Bitboard{
     match piece {
@@ -227,11 +295,11 @@ pub fn get_attacks(piece:Piece, square: Square, all_occ: Bitboard, color : Color
 #[test]
 fn test_attacks(){
     
-    let position = Position::new(Some("r3k3/8/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq e3 0 1"));
+    let position = Position::new(Some("r3k3/ppp1pppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq e3 0 1"));
+    dbg!(&position);
 
 
-
-    let new_b = pawn_attacks(Square::D4, Color::Black);
+    let new_b = pawn_groupe_attacks_right(&position, Color::White);
 
     dbg!(new_b);
 

@@ -5,6 +5,9 @@ use chess_core::position::{Color, Position};
 use chess_core::piece::PieceIndex;
 use chess_core::board::Bitboards;
 
+use crate::piece_square_table;
+use crate::positional_eval::{self, evaluate_piece_pos};
+
 pub const INF: i32 = 300_000; // Making that not overflow, like ever
 const VALS: [i32; 5] = [100, 320, 330, 500, 900]; // P,N,B,R,Q // ?can be local as i wil only use the evaluate function later i think
 
@@ -38,10 +41,8 @@ pub fn evaluate_material(pos: &Position) -> i32 {
 
 // TODO this should be a lot more extensive, looking at the positional state and so on
 pub fn evaluate(pos: &Position) -> i32 { 
-
-
     
-    evaluate_material(pos)
+    evaluate_material(pos) + evaluate_piece_pos(pos)
 }
 
 

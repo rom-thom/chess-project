@@ -52,61 +52,108 @@ impl MoveGen{ // generates pseudo legal piece moves
 
     // Pawn move gens
 
-    pub fn generate_pawn_moves(pos: &Position, color: Color, move_list: &mut MoveList){ // TODO Change this to act on every pawn at once
-        let all_occ = pos.current.bitboards.all_occupancy;
-        let mut pawn_bitboard = pos.current.bitboards.get_bitboard(PieceIndex::from_piece(Piece::Pawn, color));
-
-        let (las_rank, start_rank, double_pawn_push_end_rank) = match color {
-            Color::Black => (bitboard_consts::RANK_1, bitboard_consts::RANK_7, bitboard_consts::RANK_5),
-            Color::White => (bitboard_consts::RANK_8, bitboard_consts::RANK_2, bitboard_consts::RANK_4)
+    pub fn generate_group_pawn_moves(pos: &Position, color: Color, move_list: &mut MoveList){
+        let opponents_bb = match color {
+            Color::Black => pos.current.bitboards.white_occupancy,
+            Color::White => pos.current.bitboards.black_occupancy
         };
+        let en_passant_bb = pos.current.en_passant.map_or( Bitboard::new_empty(),|square|square.to_bitboard());
 
-        let (my_occ, opponent_occ) = match color {
-            Color::White => (pos.current.bitboards.white_occupancy, pos.current.bitboards.black_occupancy),
-            Color::Black => (pos.current.bitboards.black_occupancy, pos.current.bitboards.white_occupancy)
-        };
+        let (mut single_push, mut double_push) = attack::pawn_groupe_straight_moves(pos, color);
+        let mut left_attack = attack::pawn_groupe_attacks_left(pos, color) & (opponents_bb | en_passant_bb);
+        let mut right_attack = attack::pawn_groupe_attacks_right(pos, color) & (opponents_bb | en_passant_bb);
 
-        while let Some(pawn_idx) = pawn_bitboard.pop_lsb() {
-            let start_square = square::Square::from_idx(pawn_idx).expect("there should be a bit on the bitboard if i am inside this function");
-            let start_bb = start_square.to_bitboard();
-            let mut pawn_moves = attack::pawn_moves(start_square, all_occ, color);
-            
-            while let Some(end_idx) = pawn_moves.pop_lsb() {
-                let end_square = square::Square::from_idx(end_idx).expect("there should be a bit on the bitboard if i am inside this function");
-                let end_bb = end_square.to_bitboard();
-                let is_capture = end_bb.intersects(opponent_occ);
+        let end_row = match color {
+                Color::Black => 0,
+                Color::White => 7
+            };
 
-                
-                if Some(end_square) == pos.current.en_passant{
-                    move_list.add(BitMove::new(start_square, end_square, true, MoveType::EnPassant));
-                    continue;
-                }
+        while let Some(single_push_idx) = single_push.pop_lsb() { // Loop single push
+            let end_square = Square::from_idx(single_push_idx).expect("i used pop_lsb");
+            let start_square = match color {
+                Color::Black => end_square.upp(),
+                Color::White => end_square.down()
+            }.expect("There should be a startingsquare, because that is where the attackmask generated the move from");
+            if end_square.row() == end_row{
+                move_list.add(BitMove::new(start_square, end_square, false, MoveType::Promotion(Piece::Bishop)));
+                move_list.add(BitMove::new(start_square, end_square, false, MoveType::Promotion(Piece::Queen)));
+                move_list.add(BitMove::new(start_square, end_square, false, MoveType::Promotion(Piece::Rook)));
+                move_list.add(BitMove::new(start_square, end_square, false, MoveType::Promotion(Piece::Knight)));
 
-                
-                if end_square.col() != start_square.col() && !is_capture{
-                    continue; // This is if the attack function for the pawn just gave the correct diagonals, there wernt any pieces there
-                }
-                
-                if end_square.to_bitboard().intersects(las_rank){
-                    move_list.add(BitMove::new(start_square, end_square, is_capture, MoveType::Promotion(Piece::Queen)));
-                    move_list.add(BitMove::new(start_square, end_square, is_capture, MoveType::Promotion(Piece::Knight)));
-                    move_list.add(BitMove::new(start_square, end_square, is_capture, MoveType::Promotion(Piece::Rook)));
-                    move_list.add(BitMove::new(start_square, end_square, is_capture, MoveType::Promotion(Piece::Bishop)));
-                    continue;
-                }
-                
-                if end_bb.intersects(double_pawn_push_end_rank) && start_bb.intersects(start_rank){
-                    move_list.add(BitMove::new(start_square, end_square, false, MoveType::EnPassant)); // I have made the en passant for deskribing both making and taking en passant square
-                    continue;
-                }
-
-                move_list.add(BitMove::new(start_square, end_square, is_capture, MoveType::Quiet));
-
-            }
+                continue;
+            };
+            move_list.add(BitMove::new(start_square, end_square, false, MoveType::Quiet));
         }
+        while let Some(double_push_idx) = double_push.pop_lsb() { // Loop double push
+            let end_square = Square::from_idx(double_push_idx).expect("i used pop_lsb");
+
+
+            let start_square = match color {
+                Color::Black => end_square.upp()
+                        .expect("There should be a startingsquare, because that is where the attackmask generated the move from")
+                        .upp(),    
+                Color::White => end_square.down()
+                                    .expect("There should be a startingsquare, because that is where the attackmask generated the move from")
+                                    .down(),
+            }.expect("There should be a starting square, because that is where the attackmask generated the move from");
+
+
+            move_list.add(BitMove::new(start_square, end_square, false, MoveType::EnPassant));
+        }
+        while let Some(left_attack_idx) = left_attack.pop_lsb() { // Loop capture left
+            let end_square = Square::from_idx(left_attack_idx).expect("i used pop_lsb");
+            let start_square = match color { //This should be the oposite direction of where the capture was done
+                Color::Black => end_square.upp_right(),
+                Color::White => end_square.down_right()
+            }.expect("There should be a startingsquare, because that is where the attackmask generated the move from");
+
+            if end_square.row() == end_row{
+                move_list.add(BitMove::new(start_square, end_square, true, MoveType::Promotion(Piece::Bishop)));
+                move_list.add(BitMove::new(start_square, end_square, true, MoveType::Promotion(Piece::Queen)));
+                move_list.add(BitMove::new(start_square, end_square, true, MoveType::Promotion(Piece::Rook)));
+                move_list.add(BitMove::new(start_square, end_square, true, MoveType::Promotion(Piece::Knight)));
+
+                continue;
+            };
+
+            let is_en_passant = pos.current.en_passant.map_or(false, |en_pas_sqr|en_pas_sqr.index() == left_attack_idx);
+            
+            if is_en_passant{
+                move_list.add(BitMove::new(start_square, end_square, true, MoveType::EnPassant));
+                continue;
+            }
+            move_list.add(BitMove::new(start_square, end_square, true, MoveType::Quiet));
+        }
+        while let Some(right_attack_idx) = right_attack.pop_lsb() { // Loop capture right
+            let end_square = Square::from_idx(right_attack_idx).expect("i used pop_lsb");
+            let start_square = match color {
+                Color::Black => end_square.upp_left(),
+                Color::White => end_square.down_left()
+            }.expect("There should be a startingsquare, because that is where the attackmask generated the move from");
+
+            if end_square.row() == end_row{
+                move_list.add(BitMove::new(start_square, end_square, true, MoveType::Promotion(Piece::Bishop)));
+                move_list.add(BitMove::new(start_square, end_square, true, MoveType::Promotion(Piece::Queen)));
+                move_list.add(BitMove::new(start_square, end_square, true, MoveType::Promotion(Piece::Rook)));
+                move_list.add(BitMove::new(start_square, end_square, true, MoveType::Promotion(Piece::Knight)));
+
+                continue;
+            };
+
+            let is_en_passant = pos.current.en_passant.map_or(false, |en_pas_sqr|en_pas_sqr.index() == right_attack_idx);
+            
+            if is_en_passant{
+                move_list.add(BitMove::new(start_square, end_square, true, MoveType::EnPassant));
+                continue;
+            }
+            move_list.add(BitMove::new(start_square, end_square, true, MoveType::Quiet));
+        }
+
     }
 
 
+    
+    
 
 
 
@@ -158,9 +205,12 @@ impl MoveGen{ // generates pseudo legal piece moves
 
 #[test]
 fn test_piece_movegen(){
-    let pos = Position::new(Some("8/4K3/1k6/3r4/8/8/1R6/4R3 w - - 0 1"));
-
+    let pos = Position::new(Some("r7/8/3P4/1Pp5/1k6/8/8/7K w - c6 0 1"));
+    dbg!(&pos);
     let mut list = MoveList::new_empty();
-    MoveGen::generate_normal_piece_moves(&pos, Piece::Pawn, Color::White, &mut list);
+    MoveGen::generate_group_pawn_moves(&pos, Color::White, &mut list);
     dbg!(list.size());
+    for i in list.iter(){
+        dbg!(i.to_string());
+    }
 }

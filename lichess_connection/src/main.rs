@@ -223,7 +223,7 @@ use chess_core::{piece::Piece, *};
 use rand::Rng;
 
 /// `history` is the list of all past UCI moves in the game so far.
-fn random_move(history: &[&str]) -> Option<String> { // random for now // TODO here is where i should generate the move
+fn random_move(history: &[&str]) -> Option<String> { // random for now
     let mut pos = Position::new(None); // We are starting from the starting_ position
     for mov in history{
         let str_move = MoveGen::stringmove_to_bitmove(&mut pos,mov).expect("Couldn't convert move recieved from liches to bitmove");
@@ -283,7 +283,7 @@ fn alpha_beta_generator(mut pos: Position) -> Option<String>{
     MoveGen::fill_legal(&mut pos, &mut legal_moves);
 
 
-    let bm_path = serch::serch_alpha_beta_negamax::<6>(&mut pos, 0);
+    let bm_path = serch::serch_alpha_beta_negamax::<5>(&mut pos, 0);
 
     let bm = if bm_path.0.is_empty() {
         String::new()

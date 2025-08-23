@@ -1,6 +1,9 @@
+use std::u64;
+
 use crate::board::Bitboard;
 
-
+// Board
+    pub const BOARD: Bitboard = Bitboard::new_const(u64::MAX);
 // Rank masks
     pub const RANK_1: Bitboard = Bitboard::new_const(0x0000_0000_0000_00FF);
     pub const RANK_2: Bitboard = Bitboard::new_const(0x0000_0000_0000_FF00);
@@ -81,7 +84,6 @@ use crate::board::Bitboard;
 
 #[test]
 fn test_bitboard_display(){
-    dbg!(CASTLE_EMPTY_BLACK_KINGSIDE);
-    dbg!(CASTLE_PATH_BLACK_KINGSIDE);
+    dbg!(BOARD);
 
 }

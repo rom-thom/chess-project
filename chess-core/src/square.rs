@@ -111,11 +111,52 @@ impl Square {
         Bitboard::from(self.index())
     }
 
-    
-
 }
 
 
+
+
+impl Square { // Directions
+    pub fn down(&self) -> Option<Square>{
+        if self.row() == 0{
+            return None
+        }
+        Square::from_coords((self.row()-1) as usize, self.col() as usize)
+    }
+    pub fn upp(&self) -> Option<Square>{
+        Square::from_coords((self.row()+1) as usize, self.col() as usize)
+    }
+    pub fn right(&self) -> Option<Square>{
+        Square::from_coords(self.row() as usize, (self.col()+1) as usize)
+    }
+    pub fn left(&self) -> Option<Square>{
+        if self.col() == 0{
+            return None
+        }
+        Square::from_coords(self.row() as usize, (self.col()-1) as usize)
+    }
+    pub fn upp_right(&self) -> Option<Square>{
+        Square::from_coords((self.row()+1) as usize, (self.col()+1) as usize)
+    }
+    pub fn upp_left(&self) -> Option<Square>{
+        if self.col() == 0{
+            return None
+        }
+        Square::from_coords((self.row()+1) as usize, (self.col()-1) as usize)
+    }
+    pub fn down_right(&self) -> Option<Square>{
+        if self.row() ==  0{
+            return None
+        }
+        Square::from_coords((self.row()-1) as usize, (self.col()+1) as usize)
+    }
+    pub fn down_left(&self) -> Option<Square>{
+        if self.row() ==  0 || self.col() == 0{
+            return None
+        }
+        Square::from_coords((self.row()-1) as usize, (self.col()-1) as usize)
+    }
+}
 
 
 

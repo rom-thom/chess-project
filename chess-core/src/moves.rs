@@ -30,6 +30,7 @@ impl BitMove{
         BitMove::encode(Move{from, to, is_capture, move_type})
     }
 
+
     pub fn get_start_square(&self)->Square{
         Square::from_idx((self.0 >> FROM_SHIFT) as u8).expect("get_start_square (BitMove) finds an un squarable index from:")
     }
