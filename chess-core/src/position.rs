@@ -54,7 +54,8 @@ impl Position {
 }
 
 
-
+#[derive(Copy, Clone, PartialEq)]
+pub struct ZobristKey(u64);
 
 
 #[derive(Copy, Clone, PartialEq)]
@@ -65,7 +66,7 @@ pub struct Snapshot {
     pub en_passant: Option<Square>,  
     pub halfmove_clock: u16,             
     pub fullmove_number: u16,
-    //zobrist_key:     u64,  // TODO look up and make this later (I'm in neeed for speeed)
+    pub zobrist_key: ZobristKey,
 }
 
 

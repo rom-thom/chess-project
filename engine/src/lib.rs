@@ -1,8 +1,13 @@
-pub mod static_eval;
-pub mod dynamic_eval;
-pub mod serch;
+
+
 pub mod piece_square_table;
-pub mod positional_eval;
+pub mod score;
+pub mod eval;
+pub mod serch;
+pub mod trans_pos_table;
+
+
+
 #[cfg(test)]
 mod tests {
     // use super::*;
