@@ -1,5 +1,7 @@
 // These are the tables for white
 
+use chess_core::position::Color;
+
 pub const MG_PAWN_TABLE: [i16; 64] = [
       0,   0,   0,   0,  0,   0,  0,   0,
      98, 134,  61,  95, 68, 126, 34, -11,
@@ -143,6 +145,45 @@ pub const SQUARE_VAL_TABLE_WHITE: [[[i16; 64]; 6]; 2] = [
 
 #[inline]
 pub fn blackify_idx(white_idx: usize) -> usize{
+    debug_assert!(white_idx < 64);
     white_idx ^ 56 // Av ein eller anna grunn så flippar dette rada, men kolonna blir det same
 }
 
+
+
+
+
+
+#[test]
+
+fn test_square_table(){
+    _print_psqt(&EG_PAWN_TABLE, Color::Black);
+    _print_psqt(&EG_PAWN_TABLE, Color::White);
+
+}
+
+fn _print_psqt(table: &[i16; 64], side_to_move: Color) {
+    const CELL_W: usize = 5; // room for "+123" etc.
+    let cell_sep = "-".repeat(CELL_W);
+    let border = format!("  +{}+", (0..8).map(|_| cell_sep.as_str()).collect::<Vec<_>>().join("+"));
+
+    // File labels
+    let files = ['a','b','c','d','e','f','g','h'];
+    println!();
+    println!("      {}", files.iter().map(|c| format!("{:^width$}", c, width=CELL_W)).collect::<Vec<_>>().join(""));
+    println!("{}", border);
+
+    // Ranks (7..0 so rank 8 prints first)
+    for rank in (0..8).rev() {
+        print!("{} |", rank + 1);
+        for file in 0..8 {
+            let idx = rank * 8 + file; // index as white
+            let idx = if side_to_move == Color::Black { blackify_idx(idx) } else { idx };
+            let val = table[idx];
+            print!("{:^width$}|", format!("{:+}", val), width = CELL_W);
+        }
+        println!();
+        println!("{}", border);
+    }
+    println!();
+}

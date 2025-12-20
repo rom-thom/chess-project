@@ -18,7 +18,7 @@ impl MoveGen {
 
     // Move generation (finds only the one for the color that currently is to move)
     // Finds all the pseudo legal (legal except for checks) moves in that position
-     pub fn pseudo_legal(pos: &Position, mut move_list: &mut MoveList){
+    pub fn pseudo_legal(pos: &Position, mut move_list: &mut MoveList){
         let color = pos.current.side_to_move;
         MoveGen::generate_group_pawn_moves(pos, color, &mut move_list);
 
@@ -30,10 +30,12 @@ impl MoveGen {
 
         MoveGen::generate_kastling_moves(pos, color, &mut move_list);
         MoveGen::generate_normal_piece_moves(pos, Piece::King, color, &mut move_list);
+    }
 
-
-  }
-
+    // q = Quiesence (fancy word for captures, promotions and all that is not quiet as in noone ca take and so on)
+    pub fn pseudo_legal_q(pos: &Position, mut move_list: &mut MoveList){
+        
+    }
 
 
 
@@ -166,45 +168,39 @@ impl MoveGen {
 
 
 impl Position{
-    
-    // Changes the position according to the move  // TODO find a beter way, i just did what my first instingt was
-    pub fn make_move(&mut self, mov: &BitMove){// TODO Mailbox must be updated here when implemented
+    // Here is a checklist of things to check:
+    /*
+        Legality check
+        Piece move (from→to)
+        Capture / en passant remove
+        Promotion replace
+        Castling rook move
+        Update castling rights
+        Update en passant square
+        Update halfmove clock
+        Update fullmove number
+        Flip side-to-move
+        Update king square // TODO maybe for later
+        Update bitboards / piece lists
+        Update hash (Zobrist) // TODO maybe for later
+        Push move history 
+        Update Mailbox // TODO for later
+    */
+    // Changes the position according to the move
+    pub fn make_move(&mut self, mov: &BitMove){
 
         self.history.push(self.current);
 
         // predefined variables
         let color = self.current.side_to_move;
-        
-        let (my_occ, opponent_occ) = match self.current.side_to_move {
-            Color::White => (self.current.bitboards.white_occupancy, self.current.bitboards.black_occupancy),
-            Color::Black => (self.current.bitboards.black_occupancy, self.current.bitboards.white_occupancy)
-        };
-        let all_occ = self.current.bitboards.all_occupancy;
 
-        let all_bit_boards = self.current.bitboards;
+        let all_bit_boards = &self.current.bitboards;
 
         let start_square = mov.get_start_square();
         let end_square = mov.get_end_square();
         let piece_index = mov.get_piece(&all_bit_boards);
         let piece = Piece::from_piece_index(&piece_index);
-        
 
-        let mut captured_piece = None;
-        if mov.is_capture(){
-            if !mov.is_en_passant(){
-
-                captured_piece = Some(self.current.bitboards.piece_on_square(end_square).expect("didnt find captured piece on square in make_move"));
-            }
-            else{
-                captured_piece = match color {
-                    Color::Black => Some(PieceIndex::BlackPawn),
-                    Color::White => Some(PieceIndex::WhitePawn),
-                } 
-            }
-        }
-        
-
-        self.current.bitboards.remove(piece_index, start_square);
 
 
         self.current.halfmove_clock += 1; // this is always incremented unles a pawn move or a capture is made
@@ -212,23 +208,29 @@ impl Position{
             self.current.fullmove_number += 1;
         }
 
-        // Remove the captured piece
-        if mov.is_capture(){
+        self.current.bitboards.remove(piece_index, start_square); // removes the starting square piece
+
+        
+
+        let mut captured_piece = None;
+        if mov.is_capture(){ // Remove the captured piece and square
             self.current.halfmove_clock = 0;
 
-            if mov.is_en_passant(){
+            if !mov.is_en_passant(){
+
+                captured_piece = Some(self.current.bitboards.piece_on_square(end_square).expect("didnt find captured piece on square in make_move"));
+                self.current.bitboards.remove(captured_piece.expect("I just sat this as a Some"), end_square);
+            }
+            else{
                 let (enemy_pawn_rank, captured_piece) = match color {
                     Color::White => (4, PieceIndex::BlackPawn),
                     Color::Black => (3, PieceIndex::WhitePawn),
                 };
                 let captured_square = Square::from_coords(enemy_pawn_rank, end_square.to_coord().1).expect("Make_move: didnt find a piece on square that is suposed to be enemy piece captured, during en-passant");
-                self.current.bitboards.remove(captured_piece, captured_square);
-            }
-            else{
-                let captured_piece = self.current.bitboards.piece_on_square(end_square).expect("Make_move: didnt find a piece on square that is suposed to be enemy piece captured");
-                self.current.bitboards.remove(captured_piece, end_square);
+                self.current.bitboards.remove(captured_piece, captured_square); // removes the end square
             }
         }
+
 
         // Setting the end square (both pawn premotion and normal)
         match mov.get_premotion_piece(){ // This must be after capture, otherwise we might screw with the bitboards (set a bit before removing others)
@@ -239,6 +241,7 @@ impl Position{
         self.current.en_passant = None;
         if piece == Piece::Pawn{
             self.current.halfmove_clock = 0;
+            
             if mov.is_double_pawn_push(){
                 self.current.en_passant = match color {
                     Color::Black => Some(Square::from_coords(5, end_square.to_coord().1).expect("Make_move: en_passant square was not correct")),
