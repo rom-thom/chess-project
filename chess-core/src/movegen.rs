@@ -161,6 +161,8 @@ impl MoveGen {
 
     pub fn captures(&self, out: &mut MoveList){
         // TODO add a list that only looks at captures
+        out.clear();
+        
     }
 }
 

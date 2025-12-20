@@ -8,6 +8,9 @@ use tokio::time;
 use tokio_stream::StreamExt;
 use std::env;
 
+
+// Enjoy the wonderful work of vibe coding:
+
 use std::sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
@@ -283,7 +286,7 @@ fn alpha_beta_generator(mut pos: Position) -> Option<String>{
     MoveGen::fill_legal(&mut pos, &mut legal_moves);
 
 
-    let bm_path = serch::serch_alpha_beta_negamax::<5>(&mut pos, 0);
+    let bm_path = serch::serch::serch_alpha_beta_negamax(&mut pos, 5, 0);
 
     let bm = if bm_path.0.is_empty() {
         String::new()

@@ -1,8 +1,4 @@
-
-
 use chess_core::{moves::{BitMove, MoveList}, position::Position};
-
-
 
 
 // For picking a sertain move type
@@ -20,6 +16,15 @@ pub struct MovePicker{
     list: MoveList,
     idx: usize
 }
+
+
+impl MovePicker{
+
+    
+
+}
+
+
 
 impl Iterator for MovePicker{
     type Item = BitMove;

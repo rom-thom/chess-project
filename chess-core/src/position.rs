@@ -8,6 +8,7 @@ use crate::square::{Square};
 use crate::kastling::{Castling, CastlingSide, Imposter};
 use crate::{attack, position};
 use crate::bitboard_consts::{self, CORNERS};
+pub use crate::zobrist::ZobristKey;
 
 
 
@@ -56,7 +57,6 @@ impl Position {
 
 
 
-
 #[derive(Copy, Clone, PartialEq)]
 pub struct Snapshot {
     pub bitboards: Bitboards,
@@ -65,7 +65,7 @@ pub struct Snapshot {
     pub en_passant: Option<Square>,  
     pub halfmove_clock: u16,             
     pub fullmove_number: u16,
-    //zobrist_key:     u64,  // TODO look up and make this later (I'm in neeed for speeed)
+    pub zobrist_key: ZobristKey,
 }
 
 

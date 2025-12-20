@@ -1,3 +1,4 @@
+use std::char::MAX;
 use std::env::consts;
 use std::fmt::{Debug, DebugList};
 use std::fs::OpenOptions;
@@ -69,7 +70,7 @@ impl BitMove{
         }
     }
 
-    
+
 }
 
 
@@ -237,15 +238,16 @@ impl Debug for BitMove{
 }
 
 
-pub struct MovePath<const DEPTH: usize>{
-    moves: [BitMove; DEPTH],
+const MAX_DEPTH: usize = 128;
+pub struct MovePath{
+    moves: [BitMove; MAX_DEPTH],
     len: usize
 }
 
 
-impl <const DEPTH: usize> MovePath<DEPTH>{
+impl MovePath{
     pub fn new_empty()-> Self{
-        Self { moves: [BitMove::default(); DEPTH], len: 0 }
+        Self { moves: [BitMove::default(); MAX_DEPTH], len: 0 }
     }
     
     pub fn len(&self)->usize{
@@ -258,10 +260,10 @@ impl <const DEPTH: usize> MovePath<DEPTH>{
     }
     #[inline]
     pub fn is_full(&self) -> bool{
-        self.len >= DEPTH
+        self.len >= MAX_DEPTH
     }
     pub const fn capacity(&self) -> usize{
-        DEPTH
+        MAX_DEPTH
     }
 
     pub fn get(&self, idx: usize) -> Option<BitMove>{
@@ -303,7 +305,7 @@ impl <const DEPTH: usize> MovePath<DEPTH>{
 
 
 
-impl<const DEPTH: usize> Clone for MovePath<DEPTH> {
+impl Clone for MovePath {
     fn clone(&self) -> Self {
         Self {
             moves: self.moves,
@@ -312,9 +314,9 @@ impl<const DEPTH: usize> Clone for MovePath<DEPTH> {
     }
 }
 
-impl<const DEPTH: usize> Copy for MovePath<DEPTH> {}
+impl Copy for MovePath {}
 
-impl<const DEPTH: usize> Debug for MovePath<DEPTH>{
+impl Debug for MovePath{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Move path: ")?;
         if self.len() == 0{
@@ -335,7 +337,7 @@ impl<const DEPTH: usize> Debug for MovePath<DEPTH>{
 fn test_moves(){
     let mut pos = Position::new(None);
     let legal_moves = MoveGen::legal_moves(&mut pos);
-    let mut move_path = MovePath::<5>::new_empty();
+    let mut move_path = MovePath::new_empty();
     move_path.push(*legal_moves.get(2).unwrap());
     
 
