@@ -5,12 +5,13 @@ use crate::moves::{BitMove, MoveList, MoveType};
 use crate::piece::{Piece, PieceIndex};
 use crate::square::{Square};
 use crate::kastling::{Castling, CastlingSide, Imposter};
-use crate::{attack, position};
+use crate::zobrist::Zobrist;
+use crate::{attack, position, zobrist};
 use crate::bitboard_consts::{self, CORNERS};
 use crate::position::{Color, Position};
 
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]mov
 pub struct MoveGen; // Just like a namespace for move generation
 
 impl MoveGen {
@@ -184,12 +185,12 @@ impl Position{
         Flip side-to-move
         Update king square // TODO maybe for later
         Update bitboards / piece lists
-        Update hash (Zobrist) // TODO maybe for later
+        Update hash (Zobrist) // TODO when implemented
         Push move history 
         Update Mailbox // TODO for later
     */
     // Changes the position according to the move
-    pub fn make_move(&mut self, mov: &BitMove){
+    pub fn make_move(&mut self, mov: &BitMove, zobrist: Zobrist){
 
         self.history.push(self.current);
 
@@ -202,6 +203,11 @@ impl Position{
         let end_square = mov.get_end_square();
         let piece_index = mov.get_piece(&all_bit_boards);
         let piece = Piece::from_piece_index(&piece_index);
+
+
+
+        // TODO Update zobrist here:
+        
 
 
 

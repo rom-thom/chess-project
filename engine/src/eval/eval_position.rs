@@ -23,7 +23,7 @@ impl Evaluator{
 
     // start phase => phase = 0, endgame => phase = max_phase
     fn blend_phases(&self, mg: i32, eg: i32, phase: i32, max_phase: i32)->i32{
-        (phase * (eg-mg))/max_phase + mg
+        (phase * (mg-eg))/max_phase + mg   // TODO this should be eg-mg, but for some rason that does not work.
     }
 
     pub fn evaluate_piece_pos(&self, pos: &Position)-> i32{

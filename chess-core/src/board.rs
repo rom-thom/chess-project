@@ -85,7 +85,7 @@ impl Bitboards{
     pub fn piece_on_square(&self, square: Square) -> Option<PieceIndex>{
 
         for piece in 0..12{
-            if self.boards[piece].intersects(square.index().into()){
+            if self.boards[piece].intersects((square.index() as u8).into()){
                 return Some(PieceIndex::try_from(piece).expect("cannot convert from piece to pieceindex in piece on square"));
             }
         }

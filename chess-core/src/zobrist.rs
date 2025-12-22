@@ -1,4 +1,4 @@
-use crate::{position::{Color, Position, Snapshot}, square::Square};
+use crate::{board::Bitboards, moves::{BitMove, Move}, piece::{Piece, PieceIndex}, position::{Color, Position, Snapshot}, square::Square};
 
 
 
@@ -19,10 +19,36 @@ impl Default for ZobristKey {
         ZobristKey(0) // create an "empty" zobrist key
     }
 }
+impl ZobristKey{
+
+    pub fn make_move(&mut self, mov: &BitMove, boards_before_move: &Bitboards, color: Color, zob: Zobrist){
+        let from = mov.get_end_square();
+        let to = mov.get_start_square();
+        let piece = mov.get_piece(boards_before_move);
+
+        self.0 ^= zob.side;
+        self.0 ^= zob.piece_sq[piece.index()][from.index() as usize];
+        self.0 ^= zob.piece_sq[piece.index()][to.index() as usize];
+
+
+        if mov.is_capture(){
+            self.0 ^= zob.piece_sq[c.index() as usize][to.index() as usize];
+        }
+        // TODO Make this check if it is a premotion
+        if let Some(premoted) = mov.get_premotion_piece(){
+            let p = PieceIndex::from_piece(premoted, color);
+            self.0 ^= zob.piece_sq[p.index()][to.index() as usize];
+            match color {
+                Color::Black => self.0 ^= zob.piece_sq[PieceIndex::BlackPawn.index()][from.index() as usize],
+                Color::White => self.0 ^= zob.piece_sq[PieceIndex::WhitePawn.index()][from.index() as usize]
+            }
+        }
+    }
+}
 
 
 #[derive(Debug)]
-pub struct Zobrist { piece_sq: [[u64;64];12], side: u64, castle: [u64;16], ep_file: [u64;8] }
+pub struct Zobrist { pub piece_sq: [[u64;64];12], pub side: u64, pub castle: [u64;16], pub ep_file: [u64;8] }
 
 
 #[derive(Clone)]
