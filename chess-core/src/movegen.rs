@@ -5,13 +5,13 @@ use crate::moves::{BitMove, MoveList, MoveType};
 use crate::piece::{Piece, PieceIndex};
 use crate::square::{Square};
 use crate::kastling::{Castling, CastlingSide, Imposter};
-use crate::zobrist::Zobrist;
+use crate::zobrist::{Zobrist, ZobristKey};
 use crate::{attack, position, zobrist};
 use crate::bitboard_consts::{self, CORNERS};
 use crate::position::{Color, Position};
 
 
-#[derive(Clone, Debug, PartialEq)]mov
+#[derive(Clone, Debug, PartialEq)]
 pub struct MoveGen; // Just like a namespace for move generation
 
 impl MoveGen {
@@ -180,7 +180,7 @@ impl Position{
         Castling rook move
         Update castling rights
         Update en passant square
-        Update halfmove clock
+        Update halfmove clock 
         Update fullmove number
         Flip side-to-move
         Update king square // TODO maybe for later
@@ -190,44 +190,31 @@ impl Position{
         Update Mailbox // TODO for later
     */
     // Changes the position according to the move
-    pub fn make_move(&mut self, mov: &BitMove, zobrist: Zobrist){
+    pub fn make_move(&mut self, mov: &BitMove){
 
         self.history.push(self.current);
+        let old_snap = self.current;
 
         // predefined variables
-        let color = self.current.side_to_move;
+        let color = old_snap.side_to_move;
 
-        let all_bit_boards = &self.current.bitboards;
+        let old_bit_boards = old_snap.bitboards;
+        let old_ep = old_snap.en_passant;
 
         let start_square = mov.get_start_square();
         let end_square = mov.get_end_square();
-        let piece_index = mov.get_piece(&all_bit_boards);
+        let piece_index = mov.get_piece(&old_bit_boards);
         let piece = Piece::from_piece_index(&piece_index);
-
-
-
-        // TODO Update zobrist here:
         
 
 
-
-        self.current.halfmove_clock += 1; // this is always incremented unles a pawn move or a capture is made
-        if color == Color::Black{
-            self.current.fullmove_number += 1;
-        }
-
-        self.current.bitboards.remove(piece_index, start_square); // removes the starting square piece
-
-        
-
-        let mut captured_piece = None;
-        if mov.is_capture(){ // Remove the captured piece and square
-            self.current.halfmove_clock = 0;
+        let captured_piece_square = if mov.is_capture(){ // Remove the captured piece and square //  TODO make tgis be A let captured = if (...){Some(captured piece)}
 
             if !mov.is_en_passant(){
 
-                captured_piece = Some(self.current.bitboards.piece_on_square(end_square).expect("didnt find captured piece on square in make_move"));
-                self.current.bitboards.remove(captured_piece.expect("I just sat this as a Some"), end_square);
+                let captured_piece = old_bit_boards.piece_on_square(end_square).expect("didnt find captured piece on square in make_move");
+                self.current.bitboards.remove(captured_piece, end_square);
+                Some((captured_piece, end_square))
             }
             else{
                 let (enemy_pawn_rank, captured_piece) = match color {
@@ -236,8 +223,25 @@ impl Position{
                 };
                 let captured_square = Square::from_coords(enemy_pawn_rank, end_square.to_coord().1).expect("Make_move: didnt find a piece on square that is suposed to be enemy piece captured, during en-passant");
                 self.current.bitboards.remove(captured_piece, captured_square); // removes the end square
+                Some((captured_piece, captured_square))
             }
         }
+        else{
+            None
+        };
+
+
+        self.current.halfmove_clock += 1; // this is always incremented unles a pawn move or a capture is made
+        if color == Color::Black{
+            self.current.fullmove_number += 1;
+        }
+
+        if mov.is_capture() || piece == Piece::Pawn{
+            self.current.halfmove_clock = 0;
+        }
+
+        self.current.bitboards.remove(piece_index, start_square); // removes the starting square piece
+
 
 
         // Setting the end square (both pawn premotion and normal)
@@ -247,15 +251,11 @@ impl Position{
         }
 
         self.current.en_passant = None;
-        if piece == Piece::Pawn{
-            self.current.halfmove_clock = 0;
-            
-            if mov.is_double_pawn_push(){
-                self.current.en_passant = match color {
-                    Color::Black => Some(Square::from_coords(5, end_square.to_coord().1).expect("Make_move: en_passant square was not correct")),
-                    Color::White => Some(Square::from_coords(2, end_square.to_coord().1).expect("Make_move: en_passant square was not correct"))
-                };
-            }
+        if mov.is_double_pawn_push(){
+            self.current.en_passant = match color {
+                Color::Black => Some(Square::from_coords(5, end_square.to_coord().1).expect("Make_move: en_passant square was not correct")),
+                Color::White => Some(Square::from_coords(2, end_square.to_coord().1).expect("Make_move: en_passant square was not correct"))
+            };
         }
         
 
@@ -266,39 +266,33 @@ impl Position{
         //   /|\
         //   / \
         // Den må forenklast og forbedrast
-        match mov.get_castle_side(){
-            Some(side) => {
-                
-                let (rock_piece, rock_row, start_rock_col, end_rook_col) = match color {
-                    Color::Black => {
-                        if side == Imposter::King{
-                            self.current.castling.remove_castling_right(CastlingSide::BK);
-                            (PieceIndex::BlackRook, 7, 7, 5)
-                        }
-                        else {
-                            self.current.castling.remove_castling_right(CastlingSide::BQ);
-                            (PieceIndex::BlackRook, 7, 0, 3)
-                        }
-                    },
-                    Color::White => {
-                        if side == Imposter::King{
-                            self.current.castling.remove_castling_right(CastlingSide::WK);
-                            (PieceIndex::WhiteRook, 0, 7, 5)
-                        }
-                        else {
-                            self.current.castling.remove_castling_right(CastlingSide::WQ);
-                            (PieceIndex::WhiteRook, 0, 0, 3)
-                        }
+        if let Some(side) = mov.get_castle_side(){
+            
+            let (rock_piece, rock_row, start_rock_col, end_rook_col) = match color {
+                Color::Black => {
+                    if side == Imposter::King{
+                        (PieceIndex::BlackRook, 7, 7, 5)
                     }
-                };
+                    else {
+                        (PieceIndex::BlackRook, 7, 0, 3)
+                    }
+                },
+                Color::White => {
+                    if side == Imposter::King{
+                        (PieceIndex::WhiteRook, 0, 7, 5)
+                    }
+                    else {
+                        (PieceIndex::WhiteRook, 0, 0, 3)
+                    }
+                }
+            };
 
-                let rook_square_start = Square::from_coords(rock_row, start_rock_col).expect("make_move: Invalid rook square during castling");
-                self.current.bitboards.remove(rock_piece, rook_square_start);
-                let rook_square_end = Square::from_coords(rock_row, end_rook_col).expect("make_move: Invalid rook square during castling");
-                self.current.bitboards.set(rock_piece, rook_square_end);
-            },
-            None => ()
+            let rook_square_start = Square::from_coords(rock_row, start_rock_col).expect("make_move: Invalid rook square during castling");
+            self.current.bitboards.remove(rock_piece, rook_square_start);
+            let rook_square_end = Square::from_coords(rock_row, end_rook_col).expect("make_move: Invalid rook square during castling");
+            self.current.bitboards.set(rock_piece, rook_square_end);
         }
+
 
         fn castling_side_for_corner(sq: Square) -> Option<CastlingSide> {
                 match sq {
@@ -310,14 +304,15 @@ impl Position{
                 }
             }
 
-        if let Some(cap_piece) = captured_piece { // See if anything captures the rock in the corner
-            if cap_piece.to_piece() == Piece::Rook && end_square.to_bitboard().intersects(bitboard_consts::CORNERS){
+        if let Some(cap_piece_sq) = captured_piece_square { // See if anything captures the rock in the corner
+            if cap_piece_sq.0.to_piece() == Piece::Rook && end_square.to_bitboard().intersects(bitboard_consts::CORNERS){
                 if let Some(side) = castling_side_for_corner(end_square) {
                     self.current.castling.remove_castling_right(side);
                 }
             }
         }
-        if piece == Piece::Rook && start_square.to_bitboard().intersects(CORNERS){ // See if rook moves
+         // Remove castling if rook moves:
+        if piece == Piece::Rook && start_square.to_bitboard().intersects(CORNERS){
             if let Some(side) = castling_side_for_corner(start_square) {
                 self.current.castling.remove_castling_right(side);
             }
@@ -335,6 +330,10 @@ impl Position{
 
 
         self.current.side_to_move = !self.current.side_to_move;
+
+
+        // TODO Update zobrist here:
+        self.current.zobrist_key.make_move(mov, &old_bit_boards, captured_piece_square, color, &self.current.castling, &old_snap.castling, self.current.en_passant.as_ref(), old_ep.as_ref());
 
         
     }
@@ -442,7 +441,7 @@ mod test{
         for i in 0..50{
             let moves = MoveGen::legal_moves(&mut position);
             let nr = rng.random_range(0..moves.size());
-            position.make_move(moves.get(nr).unwrap());
+            // position.make_move(moves.get(nr).unwrap());
             dbg!(position.current.bitboards.all_occupancy);
         }
     }

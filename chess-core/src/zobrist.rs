@@ -1,5 +1,5 @@
-use crate::{board::Bitboards, moves::{BitMove, Move}, piece::{Piece, PieceIndex}, position::{Color, Position, Snapshot}, square::Square};
-
+use crate::{board::Bitboards, kastling::{Castling, CastlingSide, Imposter}, moves::{BitMove, Move}, piece::{Piece, PieceIndex}, position::{Color, Position, Snapshot}, square::Square};
+use std::sync::OnceLock;
 
 
 impl Position{
@@ -21,28 +21,52 @@ impl Default for ZobristKey {
 }
 impl ZobristKey{
 
-    pub fn make_move(&mut self, mov: &BitMove, boards_before_move: &Bitboards, color: Color, zob: Zobrist){
-        let from = mov.get_end_square();
-        let to = mov.get_start_square();
+    pub fn make_move(&mut self, mov: &BitMove, boards_before_move: &Bitboards, captured_piece_square: Option<(PieceIndex, Square)>, color: Color, new_castling: &Castling, old_castling: &Castling, new_ep: Option<&Square>, old_ep: Option<&Square>){
+        let from = mov.get_start_square();
+        let to = mov.get_end_square();
         let piece = mov.get_piece(boards_before_move);
 
-        self.0 ^= zob.side;
-        self.0 ^= zob.piece_sq[piece.index()][from.index() as usize];
-        self.0 ^= zob.piece_sq[piece.index()][to.index() as usize];
-
-
-        if mov.is_capture(){
-            self.0 ^= zob.piece_sq[c.index() as usize][to.index() as usize];
-        }
-        // TODO Make this check if it is a premotion
+        self.0 ^= zob().side;
+        self.0 ^= zob().piece_sq[piece.index()][from.index() as usize];
+        self.0 ^= zob().piece_sq[piece.index()][to.index() as usize];
+        
+        
         if let Some(premoted) = mov.get_premotion_piece(){
             let p = PieceIndex::from_piece(premoted, color);
-            self.0 ^= zob.piece_sq[p.index()][to.index() as usize];
-            match color {
-                Color::Black => self.0 ^= zob.piece_sq[PieceIndex::BlackPawn.index()][from.index() as usize],
-                Color::White => self.0 ^= zob.piece_sq[PieceIndex::WhitePawn.index()][from.index() as usize]
-            }
+            self.0 ^= zob().piece_sq[piece.index()][to.index() as usize]; // To remove the previously set square
+            self.0 ^= zob().piece_sq[p.index()][to.index() as usize];
+
         }
+
+        if let Some(piece_square_taken) = captured_piece_square{
+            self.0 ^= zob().piece_sq[piece_square_taken.0.index() as usize][piece_square_taken.1.index() as usize];
+        }
+        
+        if let Some(side) = mov.get_castle_side(){
+            // Here i dont need to change the normal move (from the king) as that is done above
+            let (rook, rook_start_square, rook_end_square) = match (color, side) {
+                (Color::White, Imposter::King)  => (PieceIndex::WhiteRook, Square::H1, Square::F1),
+                (Color::White, Imposter::Queen) => (PieceIndex::WhiteRook, Square::A1, Square::D1),
+                (Color::Black, Imposter::King)  => (PieceIndex::BlackRook, Square::H8, Square::F8),
+                (Color::Black, Imposter::Queen) => (PieceIndex::BlackRook, Square::A8, Square::D8),
+            };
+            self.0 ^= zob().piece_sq[rook.index()][rook_start_square.index() as usize] ^ zob().piece_sq[rook.index()][rook_end_square.index() as usize];
+        }
+
+
+        self.0 ^= zob().castle[old_castling.rights as usize];
+        self.0 ^= zob().castle[new_castling.rights as usize];
+
+
+        //TODO: Add the en passant part, that checks for legality of en passant captures (this is not strictly nesesary, but its usefull)
+
+        // if let Some(old_ep) = old_ep_sq_if_capturable { self.0 ^= zob().ep_file[old_ep.col() as usize]; }
+        // if let Some(new_ep) = new_ep_sq_if_capturable { self.0 ^= zob().ep_file[new_ep.col() as usize]; }
+
+        if let Some(ep) = old_ep { self.0 ^= zob().ep_file[ep.col() as usize]; }
+        if let Some(ep) = new_ep { self.0 ^= zob().ep_file[ep.col() as usize]; }
+
+
     }
 }
 
@@ -123,6 +147,15 @@ impl Zobrist {
     }
 }
 
+
+
+// Ensures the Zobrist table is initialized only once for the entire duration of the program and can be accessed globally.
+
+static ZOBRIST: OnceLock<Zobrist> = OnceLock::new();
+
+fn zob() -> &'static Zobrist { // ?? If i ever want to use zob() anyware else change this to pub fn ...
+    ZOBRIST.get_or_init(|| Zobrist::new(0x9E3770B9AF4A7C15))
+}
 
 
 
