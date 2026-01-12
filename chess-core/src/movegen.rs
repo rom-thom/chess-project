@@ -332,7 +332,6 @@ impl Position{
         self.current.side_to_move = !self.current.side_to_move;
 
 
-        // TODO Update zobrist here:
         self.current.zobrist_key.make_move(mov, &old_bit_boards, captured_piece_square, color, &self.current.castling, &old_snap.castling, self.current.en_passant.as_ref(), old_ep.as_ref());
 
         

@@ -21,6 +21,10 @@ impl Default for ZobristKey {
 }
 impl ZobristKey{
 
+    pub fn as_u64(&self) -> u64{
+        self.0
+    }
+
     pub fn make_move(&mut self, mov: &BitMove, boards_before_move: &Bitboards, captured_piece_square: Option<(PieceIndex, Square)>, color: Color, new_castling: &Castling, old_castling: &Castling, new_ep: Option<&Square>, old_ep: Option<&Square>){
         let from = mov.get_start_square();
         let to = mov.get_end_square();
