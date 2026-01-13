@@ -19,8 +19,11 @@ impl Default for ZobristKey {
         ZobristKey(0) // create an "empty" zobrist key
     }
 }
-impl ZobristKey{
 
+impl ZobristKey{
+    pub fn from_u64(val: u64) -> ZobristKey{
+        ZobristKey(val)
+    }
     pub fn as_u64(&self) -> u64{
         self.0
     }
@@ -171,3 +174,6 @@ fn test_zobrist(){
         dbg!(&s);
     }
 }
+
+
+
