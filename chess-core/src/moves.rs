@@ -274,14 +274,26 @@ impl MovePath{
     }
 
 
-    pub fn push(&mut self, mov: BitMove) -> bool{ // false == full
-        if self.is_full(){
-            return false
-        }
+    pub fn push(&mut self, mov: BitMove){ // false == full
+        debug_assert!(self.is_full(), "MovePath overflow, tried to push to full movepath");
+
         self.moves[self.len] = mov;
         self.len += 1;
+    }
 
-        true
+    pub fn append(&mut self, other: &mut Self){ 
+        let other_len = other.len();
+
+        debug_assert!(self.len + other_len >= MAX_DEPTH, "MovePath overflow");
+
+        // Copy the other's moves into our storage at the current end
+        if !other.is_empty() {
+            let start = self.len;
+            let end = start + other_len;
+            self.moves[start..end].copy_from_slice(&other.moves[..other_len]);
+            self.len = end;
+        }
+
     }
 
     pub fn pop(&mut self) -> Option<BitMove>{
@@ -305,16 +317,6 @@ impl MovePath{
 
 
 
-impl Clone for MovePath {
-    fn clone(&self) -> Self {
-        Self {
-            moves: self.moves,
-            len: self.len,
-        }
-    }
-}
-
-impl Copy for MovePath {}
 
 impl Debug for MovePath{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
