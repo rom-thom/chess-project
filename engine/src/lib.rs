@@ -5,7 +5,7 @@ pub mod score;
 pub mod eval;
 pub mod serch;
 pub mod trans_pos_table;
-
+pub mod engine;
 
 
 #[cfg(test)]
