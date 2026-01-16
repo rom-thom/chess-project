@@ -1,6 +1,7 @@
 use chess_core::movegen::MoveGen;
 use chess_core::position::Position;
 use dotenv::dotenv;
+use engine::engine::Engine;
 use engine::serch;
 use reqwest::Client;
 use serde::Deserialize;
@@ -286,18 +287,16 @@ fn alpha_beta_generator(mut pos: Position) -> Option<String>{
     let mut legal_moves = moves::MoveList::new_empty();
     MoveGen::fill_legal(&mut pos, &mut legal_moves);
 
+    let mut engine = Engine::new(524288); // 2**19
+    let serch_result = engine.negamax(&mut pos, 5);
+    let best_move = serch_result.best_move;
 
-    let bm_path = serch::serch::serch_alpha_beta_negamax(&mut pos, 5);
-
-    let bm = if bm_path.0.is_empty() {
-        String::new()
-    } else {
-        bm_path.0
-            .get(0)
-            .expect("should have been able to unpack this move")
-            .to_string()
-    };
-    Some(bm)
+    if let Some(bm) = best_move{
+        return Some(bm.to_string());
+    }
+    else{
+        return None;
+    }
 }
 
 
