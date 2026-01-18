@@ -227,6 +227,8 @@ fn move_setup(history:  &[&str]) -> Position{
 use chess_core::{piece::Piece, *};
 use rand::Rng;
 
+use crate::game::Game;
+
 /// `history` is the list of all past UCI moves in the game so far.
 fn random_move(history: &[&str]) -> Option<String> { // random for now
     let mut pos = Position::new(None); // We are starting from the starting_ position
@@ -299,4 +301,10 @@ fn alpha_beta_generator(mut pos: Position) -> Option<String>{
     }
 }
 
+
+
+
+fn engine_setup(fen_string:Option<&str>) -> Game{
+    Game::new(fen_string, 8) //TT = 2**3
+}
 
