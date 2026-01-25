@@ -1,9 +1,8 @@
 use std::{cmp::{max, min}, fmt::Debug, i32};
 
 use chess_core::{movegen::{self, MoveGen}, moves::{BitMove, Move, MoveList, MovePath}, position::{Color, Position}};
-use crate::{engine::Engine, score, serch::serch_result::SearchResult};
+use crate::{engine::Engine, score, serch::serch_structs::SearchResult};
 use crate::eval::Evaluator;
-
 
 
 

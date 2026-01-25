@@ -1,5 +1,5 @@
 use chess_core::{moves::{BitMove, MoveList}, position::Position};
-use engine::{engine::Engine, serch::serch_result::SearchResult};
+use engine::{engine::Engine, serch::serch_structs::SearchResult};
 
 
 
@@ -25,8 +25,5 @@ impl Game{
     }
 
 
-    pub fn think(&mut self, depth: usize) -> SearchResult{
-        self.engine.negamax(&mut self.pos, depth)
-    }
 
 }

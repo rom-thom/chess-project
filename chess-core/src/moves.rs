@@ -244,6 +244,15 @@ pub struct MovePath{
     len: usize
 }
 
+impl Default for MovePath {
+    fn default() -> Self {
+        Self {
+            moves: [BitMove::default(); MAX_DEPTH],
+            len: 0,
+        }
+    }
+}
+
 
 impl MovePath{
     pub fn new_empty()-> Self{
