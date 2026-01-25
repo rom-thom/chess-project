@@ -76,9 +76,9 @@ impl TT{
 
 
 
-
-    /// Probe the table. If depth is sufficient and the bound proves something for the
-    /// (alpha, beta) window, returns `cutoff=Some(score)`.
+    /// This returns TTProbe, that if there exist a position in the table that maches the current position, it returns the best move, 
+    /// a bool telling it that it hit, and a cutof. The cutoff is the score at the end if the depth was deep enough and None otherwise.
+    /// It only returns a cutoff if it is safe to asume that that is the best move
     pub fn probe(&self, key: ZobristKey, depth: i8, alpha: i32, beta: i32) -> TTProbe {
         let key_val = key.as_u64();
         let entry = self.table[self.index(key_val)];
@@ -110,11 +110,11 @@ impl TT{
         let idx = self.index(k);
         let old = self.table[idx];
 
-        // Simple replacement policy:
-        // - replace if empty
-        // - or different key
-        // - or deeper
-        // - or old entry from a previous age
+        // Replace if:
+        // - empty
+        // - different key
+        // - deeper
+        // - old entry from a previous age
         let replace = old.is_empty()
             || old.key != k
             || depth >= old.depth
