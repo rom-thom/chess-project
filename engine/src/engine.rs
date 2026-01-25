@@ -1,3 +1,5 @@
+use chess_core::position::Position;
+
 use crate::{eval::Evaluator, serch::serch_structs::{SearchLimits, SearchResult}, trans_pos_table::TT};
 
 
@@ -5,8 +7,8 @@ use crate::{eval::Evaluator, serch::serch_structs::{SearchLimits, SearchResult},
 
 
 pub struct Engine{
-    tt: TT,
-    eval: Evaluator
+    pub tt: TT,
+    pub eval: Evaluator
 }
 
 
@@ -21,16 +23,16 @@ impl Engine{
 
 
 
-    pub fn think(&mut self, limits: SearchLimits){
+    pub fn think_iterative_deepening(&mut self, pos: &mut Position, limits: SearchLimits) -> SearchResult{
 
-        let best = SearchResult::default();
         let max_depth = limits.max_depth.unwrap_or(64);
 
-        for depth in 1..=max_depth{
-
-            
-
+        let mut result = SearchResult::default();
+        for depth in 1..=max_depth {
+            result = self.negamax(pos, depth);
         }
+        result
+
     }
 }
 

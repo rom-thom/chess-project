@@ -11,7 +11,7 @@ use crate::eval::Evaluator;
 
 impl Engine{
 
-    pub fn negamax(&self, pos: &mut Position, serch_depth: usize) -> SearchResult{
+    pub fn negamax(&mut self, pos: &mut Position, serch_depth: usize) -> SearchResult{
         let mut move_path = MovePath::new_empty();
         let alpha = -score::INF; // start out small and increse it to approach beta 
         let beta = score::INF;
@@ -95,7 +95,7 @@ impl Engine{
 fn test_serch(){
     let mut pos = Position::new(Some("r1bqk2r/pppp1ppp/2n2n2/2b1p3/4P3/2NP1N2/PPP2PPP/R1BQKB1R w KQkq - 2 5"));
     dbg!(&pos);
-    let engine = Engine::new(8);
+    let mut engine = Engine::new(8);
     dbg!(engine.negamax(&mut pos, 5));
 
 }
