@@ -78,7 +78,7 @@ impl TT{
 
     /// This returns TTProbe, that if there exist a position in the table that maches the current position, it returns the best move, 
     /// a bool telling it that it hit, and a cutof. The cutoff is the score at the end if the depth was deep enough and None otherwise.
-    /// It only returns a cutoff if it is safe to asume that that is the best move
+    /// It only returns a cutoff if it is safe to asume that that is the best posible score
     pub fn probe(&self, key: ZobristKey, depth: i8, alpha: i32, beta: i32) -> TTProbe {
         let key_val = key.as_u64();
         let entry = self.table[self.index(key_val)];
