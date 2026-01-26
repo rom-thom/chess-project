@@ -1,5 +1,5 @@
 use chess_core::{moves::{BitMove, MoveList}, position::Position};
-use engine::{engine::Engine, serch::serch_structs::SearchResult};
+use engine::{engine::Engine, serch::serch_structs::{SearchLimits, SearchResult}};
 
 
 
@@ -24,6 +24,9 @@ impl Game{
         //self.engine.on_new_root();
     }
 
+    pub fn think(&mut self, pos: &mut Position, limits: SearchLimits) -> SearchResult{
+        self.engine.think_iterative_deepening(pos, limits)
+    }
 
 
 }

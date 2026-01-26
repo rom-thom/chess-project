@@ -3,6 +3,7 @@ use chess_core::position::Position;
 use dotenv::dotenv;
 use engine::engine::Engine;
 use engine::serch;
+use engine::serch::serch_structs::SearchLimits;
 use reqwest::Client;
 use serde::Deserialize;
 use tokio::time;
@@ -290,7 +291,7 @@ fn alpha_beta_generator(mut pos: Position) -> Option<String>{
     MoveGen::fill_legal(&mut pos, &mut legal_moves);
 
     let mut engine = Engine::new(524288); // 2**19
-    let serch_result = engine.negamax(&mut pos, 5);
+    let serch_result = engine.negamax(&mut pos, 7);
     let best_move = serch_result.best_move;
 
     if let Some(bm) = best_move{
@@ -308,3 +309,11 @@ fn engine_setup(fen_string:Option<&str>) -> Game{
     Game::new(fen_string, 8) //TT = 2**3
 }
 
+fn while_other_thinks(pos: &mut Position, game: &mut Game){
+    // TODO: Make it so that there is an instant way of aborting a search, for example using multi threding
+    game.think(pos, SearchLimits{max_depth: Some(5), max_time_ms: None});
+}
+
+fn find_best_move(){
+    
+}
