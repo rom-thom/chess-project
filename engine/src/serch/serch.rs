@@ -24,7 +24,7 @@ impl Engine{
         let legal_moves = MoveGen::legal_moves(pos);
 
         if legal_moves.size() == 0 || serch_depth == 0{ // TODO Separarte these
-            return SearchResult { score: self.eval.evaluate(pos), depth: 0, best_move: None };
+            return SearchResult { score: self.eval.evaluate(pos), depth: 0, best_move: None, pv: MovePath::new_empty() };
         }
 
         for m in legal_moves.iter(){
@@ -39,7 +39,7 @@ impl Engine{
             if alpha >= beta { break; }
         }
 
-        SearchResult { best_move: best_move, depth: serch_depth, score: best_score}
+        SearchResult { best_move: best_move, depth: serch_depth, score: best_score, pv: MovePath::new_empty()}
     }
 
 
@@ -151,7 +151,7 @@ impl Engine{
         let evaluator = Evaluator::default();
 
         let (path, score) = self.negamax_helper_first(pos, serch_depth, &evaluator, &mut move_path, alpha, beta);
-        SearchResult { best_move: path.get(0), score, depth: serch_depth}
+        SearchResult { best_move: path.get(0), score, depth: serch_depth, pv: MovePath::new_empty()}
     }
 
 

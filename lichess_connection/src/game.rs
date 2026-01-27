@@ -4,7 +4,7 @@ use engine::{engine::Engine, serch::serch_structs::{SearchLimits, SearchResult}}
 
 
 pub struct Game{
-    pos: Position,
+    pub pos: Position,
     engine: Engine,
 
     moves_played:  MoveList,
@@ -26,6 +26,11 @@ impl Game{
 
     pub fn think(&mut self, pos: &mut Position, limits: SearchLimits) -> SearchResult{
         self.engine.think_iterative_deepening(pos, limits)
+    }
+
+    pub fn while_other_thinks(&mut self, pos: &mut Position){
+        // TODO: Make it so that there is an instant way of aborting a search, for example using multi threding
+        self.think(pos, SearchLimits{max_depth: Some(5), max_time_ms: None});
     }
 
 
