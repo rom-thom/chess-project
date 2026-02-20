@@ -295,7 +295,7 @@ pub fn get_attacks(piece:Piece, square: Square, all_occ: Bitboard, color : Color
 #[test]
 fn test_attacks(){
     
-    let position = Position::new(Some("r3k3/ppp1pppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq e3 0 1"));
+    let position = Position::new(Some("r3k3/ppp1pppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq e3 0 1".to_string()));
     dbg!(&position);
 
 

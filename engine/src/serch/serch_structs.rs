@@ -19,3 +19,10 @@ pub struct SearchLimits{
     pub max_time_ms: Option<usize>,
 
 }
+
+
+impl SearchLimits{
+    pub fn new(max_depth: Option<usize>, max_time_ms: Option<usize>) -> Self{
+        Self { max_depth, max_time_ms }
+    }
+}

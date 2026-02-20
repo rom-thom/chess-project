@@ -225,7 +225,7 @@ impl Engine{
 
 #[test]
 fn test_serch(){
-    let mut pos = Position::new(Some("r1bqk2r/pppp1ppp/2n2n2/2b1p3/4P3/2NP1N2/PPP2PPP/R1BQKB1R w KQkq - 2 5"));
+    let mut pos = Position::new(Some("r1bqk2r/pppp1ppp/2n2n2/2b1p3/4P3/2NP1N2/PPP2PPP/R1BQKB1R w KQkq - 2 5".to_string()));
     dbg!(&pos);
     let mut engine = Engine::new(8);
     dbg!(engine.negamax(&mut pos, 5));

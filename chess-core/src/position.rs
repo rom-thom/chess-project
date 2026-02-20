@@ -33,7 +33,7 @@ impl std::fmt::Display for Color{
     }
 }
 
-#[derive(Debug, PartialEq)] // Do not derive Clone, as i dont want to do that in a time critical way
+#[derive(Debug, PartialEq, Clone)] // Do not derive Clone, as i dont want to do that in a time critical way // Screw this coment, i want to test
 pub struct Position{
     pub current: Snapshot,
 
@@ -45,10 +45,10 @@ pub struct Position{
 
 impl Position {
     
-    pub fn new(fen_string: Option<&str>) -> Self{
+    pub fn new(fen_string: Option<String>) -> Self{
         match fen_string {
             Some(str_val) => return Self::read_fen(str_val),
-            None => return Self::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+            None => return Self::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string())
         }
     }
 

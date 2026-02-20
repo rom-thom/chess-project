@@ -1,8 +1,9 @@
 use std::char::MAX;
 use std::env::consts;
+use std::ffi::os_str::Display;
 use std::fmt::{Debug, DebugList};
 use std::fs::OpenOptions;
-use std::{iter, result};
+use std::{iter, result, fmt};
 
 use crate::kastling::{Castling, CastlingSide, Imposter};
 use crate::movegen::MoveGen;
@@ -73,7 +74,11 @@ impl BitMove{
 
 }
 
-
+impl fmt::Display for BitMove {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
+}
 
 
 // Human readable version of BitMove

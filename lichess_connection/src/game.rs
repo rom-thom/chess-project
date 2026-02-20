@@ -12,7 +12,7 @@ pub struct Game{
 
 
 impl Game{
-    pub fn new(fen_string:Option<&str>,  tt_size: usize)->Self{
+    pub fn new(fen_string:Option<String>,  tt_size: usize)->Self{
         Self { pos: Position::new(fen_string), engine: Engine::new(tt_size), moves_played: MoveList::new_empty()}
     }
 
@@ -24,13 +24,13 @@ impl Game{
         //self.engine.on_new_root();
     }
 
-    pub fn think(&mut self, pos: &mut Position, limits: SearchLimits) -> SearchResult{
-        self.engine.think_iterative_deepening(pos, limits)
+    pub fn think(&mut self, limits: &SearchLimits) -> SearchResult{
+        self.engine.think_iterative_deepening(&mut self.pos, limits)
     }
 
-    pub fn while_other_thinks(&mut self, pos: &mut Position){
+    pub fn while_other_thinks(&mut self, pos: &mut Position, limit: &SearchLimits){
         // TODO: Make it so that there is an instant way of aborting a search, for example using multi threding
-        self.think(pos, SearchLimits{max_depth: Some(5), max_time_ms: None});
+        self.think(limit);
     }
 
 

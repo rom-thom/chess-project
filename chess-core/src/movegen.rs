@@ -433,7 +433,7 @@ mod test{
     
     #[test]
     fn test_board(){
-        let mut position = Position::new(Some("8/P7/8/8/8/8/5k2/7K w - - 0 1"));
+        let mut position = Position::new(Some("8/P7/8/8/8/8/5k2/7K w - - 0 1".to_string()));
         
         dbg!(&position);
         let mut rng = rand::rng();
@@ -449,7 +449,7 @@ mod test{
 #[test]
 fn test_attack(){
 
-    let mut position = Position::new(Some("8/6k1/4p3/8/2b3Q1/2Kr4/8/8 w - - 0 1"));
+    let mut position = Position::new(Some("8/6k1/4p3/8/2b3Q1/2Kr4/8/8 w - - 0 1".to_string()));
     dbg!(&position);
 
     let b = position.is_square_attacked(Square::F5, Color::Black);

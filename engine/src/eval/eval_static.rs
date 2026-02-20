@@ -42,7 +42,7 @@ impl Evaluator{
 
 #[test]
 fn test_eval(){
-    let pos = Position::new(Some("8/3k4/5q2/8/5Q2/3K4/8/8 w - - 0 1"));
+    let pos = Position::new(Some("8/3k4/5q2/8/5Q2/3K4/8/8 w - - 0 1".to_string()));
     let eval = Evaluator::default();
     dbg!(eval.evaluate(&pos));
 }

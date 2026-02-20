@@ -10,7 +10,7 @@ use crate::kastling::{Castling, CastlingSide};
 
 impl Position{
 
-    pub fn read_fen(fen_string: &str) -> Self {
+    pub fn read_fen(fen_string: String) -> Self {
         // "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"   this is the starting fen string
         let mut board = Bitboards::new_empty();
         let mut side_to_move = Color::White;
@@ -218,7 +218,7 @@ mod test {
     #[test]
     fn test_fen_read(){
         let fen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq e3 1 0";
-        let position = Position::read_fen(fen_string);
+        let position = Position::read_fen(fen_string.to_string());
         dbg!(&position);
         
         dbg!(position.write_fen());

@@ -205,7 +205,7 @@ impl MoveGen{ // generates pseudo legal piece moves
 
 #[test]
 fn test_piece_movegen(){
-    let pos = Position::new(Some("r7/8/3P4/1Pp5/1k6/8/8/7K w - c6 0 1"));
+    let pos = Position::new(Some("r7/8/3P4/1Pp5/1k6/8/8/7K w - c6 0 1".to_string()));
     dbg!(&pos);
     let mut list = MoveList::new_empty();
     MoveGen::generate_group_pawn_moves(&pos, Color::White, &mut list);
