@@ -164,6 +164,35 @@ impl MoveList{
     pub fn is_empty(&self) -> bool{
         self.len == 0
     }
+
+    #[inline]
+    pub fn swap(&mut self, i: usize, j: usize) {
+        if i < self.len && j < self.len {
+            self.moves.swap(i, j);
+        }
+    }
+
+    #[inline]
+    pub fn find_index(&self, mv: BitMove) -> Option<usize> {
+        // BitMove must be Copy + PartialEq for this
+        for i in 0..self.len {
+            if self.moves[i] == mv {
+                return Some(i);
+            }
+        }
+        None
+    }
+
+    /// If `mv` exists in the list, swap it into position 0.
+    #[inline]
+    pub fn bring_to_front(&mut self, mv: BitMove) -> bool {
+        if let Some(i) = self.find_index(mv) {
+            self.swap(0, i);
+            true
+        } else {
+            false
+        }
+    }
 }
 
 

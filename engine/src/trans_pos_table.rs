@@ -185,7 +185,7 @@ impl TT{
 
 #[cfg(feature = "tt-stats")]
 impl TT {
-    pub fn dump_stats(&self) {
+    pub fn dump_stats(&self, depth: usize) {
         use std::{
             fs::OpenOptions,
             io::Write,
@@ -203,8 +203,8 @@ impl TT {
         let cutoff_rate = if probes == 0 { 0.0 } else { cutoffs as f64 / probes as f64 };
 
         let line = format!(
-            "TT: probes={} hits={} ({:.1}%) cutoffs={} ({:.1}%) stores={} replaces={} collisions={}\n",
-            probes, hits, 100.0 * hit_rate, cutoffs, 100.0 * cutoff_rate, stores, replaces, collisions
+            "TT (depth {}): probes={} hits={} ({:.1}%) cutoffs={} ({:.1}%) stores={} replaces={} collisions={}\n",
+            depth, probes, hits, 100.0 * hit_rate, cutoffs, 100.0 * cutoff_rate, stores, replaces, collisions
         );
 
         // append to file
@@ -218,6 +218,16 @@ impl TT {
 
         // optional: keep printing too
         // eprint!("{line}");
+    }
+
+    pub fn reset_stats(&mut self) {
+        use std::sync::atomic::Ordering;
+        self.stats.probes.store(0, Ordering::Relaxed);
+        self.stats.hits.store(0, Ordering::Relaxed);
+        self.stats.cutoffs.store(0, Ordering::Relaxed);
+        self.stats.stores.store(0, Ordering::Relaxed);
+        self.stats.replaces.store(0, Ordering::Relaxed);
+        self.stats.collisions.store(0, Ordering::Relaxed);
     }
 }
 
