@@ -5,3 +5,7 @@ edition = "2024"
 
 [dependencies]
 chess-core = { path = "../chess-core" }
+
+
+[features]
+tt-stats = []

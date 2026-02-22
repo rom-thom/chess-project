@@ -19,7 +19,7 @@ use crate::communication::{ComOutput, com_loop, install_panic_log, send_move};
 fn main() {
     let tt_size = 524288; // 2**19
     let mut game = Game::new(None, tt_size);
-    let mut limits = SearchLimits::new(Some(5), None); // This might change dynamicaly in the future
+    let mut limits = SearchLimits::new(Some(6), None); // This might change dynamicaly in the future
 
 
     let stdin = io::stdin();

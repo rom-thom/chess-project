@@ -23,6 +23,8 @@ impl Engine{
         let mut best_score = -score::INF-1;
         let legal_moves = MoveGen::legal_moves(pos);
 
+        self.tt.new_search();
+
         if legal_moves.size() == 0 || serch_depth == 0{ // TODO Separarte these
             return SearchResult { score: self.eval.evaluate(pos), depth: 0, best_move: None, pv: MovePath::new_empty() };
         }
@@ -38,6 +40,9 @@ impl Engine{
             alpha = alpha.max(score);
             if alpha >= beta { break; }
         }
+
+        #[cfg(feature = "tt-stats")]
+        self.tt.dump_stats();
 
         SearchResult { best_move: best_move, depth: serch_depth, score: best_score, pv: MovePath::new_empty()}
     }
@@ -74,7 +79,7 @@ impl Engine{
         }
 
         // TT checking
-        let tt_pos_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8 , alpha, beta);
+        let tt_pos_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8, local_alpha, beta);
         
         if let Some(tt_cutoff) = tt_pos_result.cutoff{
             return tt_cutoff
@@ -169,7 +174,7 @@ impl Engine{
         let mut local_alpha = alpha;
         let mut best_pv = MovePath::new_empty(); // Best prinsipal value from all childrens tree
 
-        if pos.current.halfmove_clock == 50{
+        if pos.current.halfmove_clock >= 100{
             return (best_pv, 0);
         }
         if legal_moves.is_empty() {

@@ -42,8 +42,26 @@ pub struct TT {
     table: Vec<TTEntry>,
     mask: usize,
     age: u8,
+
+    #[cfg(feature = "tt-stats")]
+    pub stats: TTStats,
 }
 
+
+
+
+
+use std::sync::atomic::{AtomicU64, Ordering};
+
+#[derive(Default)] // TODO: This is mainly for debuging, so i may not need it in the future
+pub struct TTStats {
+    pub probes: AtomicU64,
+    pub hits: AtomicU64,
+    pub cutoffs: AtomicU64,
+    pub stores: AtomicU64,
+    pub replaces: AtomicU64,
+    pub collisions: AtomicU64,
+}
 
 
 impl TT{
@@ -55,6 +73,8 @@ impl TT{
             table: vec![TTEntry::EMPTY; entries],
             mask: entries - 1,
             age: 0,
+            #[cfg(feature = "tt-stats")]
+            stats: TTStats::default(),
         }
     }
 
@@ -80,12 +100,23 @@ impl TT{
     /// a bool telling it that it hit, and a cutof. The cutoff is the score at the end if the depth was deep enough and None otherwise.
     /// It only returns a cutoff if it is safe to asume that that is the best posible score
     pub fn probe(&self, key: ZobristKey, depth: i8, alpha: i32, beta: i32) -> TTProbe {
+
+        #[cfg(feature = "tt-stats")]
+        self.stats.probes.fetch_add(1, Ordering::Relaxed);
+
+
         let key_val = key.as_u64();
         let entry = self.table[self.index(key_val)];
 
         if entry.is_empty() || entry.key != key_val {
+            #[cfg(feature = "tt-stats")]
+            self.stats.collisions.fetch_add(1, Ordering::Relaxed);
+
             return TTProbe { cutoff: None, best: None, hit: false };
         }
+
+        #[cfg(feature = "tt-stats")]
+        self.stats.hits.fetch_add(1, Ordering::Relaxed);
 
         // Always return best move for ordering if present.
         let best = entry.best;
@@ -98,14 +129,23 @@ impl TT{
                 Bound::Upper if entry.score <= alpha => Some(entry.score),
                 _ => None,
             };
+            #[cfg(feature = "tt-stats")]
+            if cutoff.is_some() {
+                self.stats.cutoffs.fetch_add(1, Ordering::Relaxed);
+            }
+
             return TTProbe { cutoff, best, hit: true };
         }
+        
 
         TTProbe { cutoff: None, best, hit: true }
     }
 
     /// Store an entry. `bound` should be decided by alpha_orig/beta logic.
     pub fn store(&mut self, key: ZobristKey, depth: i8, score: i32, bound: Bound, best: Option<BitMove>) {
+        #[cfg(feature = "tt-stats")]
+        self.stats.stores.fetch_add(1, Ordering::Relaxed);
+
         let k = key.as_u64();
         let idx = self.index(k);
         let old = self.table[idx];
@@ -119,6 +159,12 @@ impl TT{
             || old.key != k
             || depth >= old.depth
             || old.age != self.age;
+
+        #[cfg(feature = "tt-stats")]
+        if replace && !old.is_empty() {
+            self.stats.replaces.fetch_add(1, Ordering::Relaxed);
+        }
+
 
         if replace {
             self.table[idx] = TTEntry {
@@ -137,9 +183,43 @@ impl TT{
 
 
 
+#[cfg(feature = "tt-stats")]
+impl TT {
+    pub fn dump_stats(&self) {
+        use std::{
+            fs::OpenOptions,
+            io::Write,
+            sync::atomic::Ordering,
+        };
 
+        let probes = self.stats.probes.load(Ordering::Relaxed);
+        let hits = self.stats.hits.load(Ordering::Relaxed);
+        let cutoffs = self.stats.cutoffs.load(Ordering::Relaxed);
+        let stores = self.stats.stores.load(Ordering::Relaxed);
+        let replaces = self.stats.replaces.load(Ordering::Relaxed);
+        let collisions = self.stats.collisions.load(Ordering::Relaxed);
 
+        let hit_rate = if probes == 0 { 0.0 } else { hits as f64 / probes as f64 };
+        let cutoff_rate = if probes == 0 { 0.0 } else { cutoffs as f64 / probes as f64 };
 
+        let line = format!(
+            "TT: probes={} hits={} ({:.1}%) cutoffs={} ({:.1}%) stores={} replaces={} collisions={}\n",
+            probes, hits, 100.0 * hit_rate, cutoffs, 100.0 * cutoff_rate, stores, replaces, collisions
+        );
+
+        // append to file
+        if let Ok(mut f) = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/tt-stats.log")
+        {
+            let _ = f.write_all(line.as_bytes());
+        }
+
+        // optional: keep printing too
+        // eprint!("{line}");
+    }
+}
 
 
 
