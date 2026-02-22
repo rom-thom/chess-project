@@ -96,7 +96,7 @@ pub struct Move{
 
 
 // List of current posible moves
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct MoveList{
     moves: [BitMove; 256],
     len: usize
@@ -130,6 +130,16 @@ impl MoveList{
             self.len += 1;
         }
         else{panic!("Nooo, i can't add more stuf to the Movelist. Somehow i added ilegaly many moves")} 
+    }
+
+    #[inline]
+    pub fn pop(&mut self) -> Result<BitMove, &'static str> {
+        if self.size() == 0{
+            return Err("Didn't your mom ever tel you to not pop me when i'm empty");
+        }
+        self.len -= 1;
+
+        Ok(self.moves[self.len])
     }
 
     #[inline]

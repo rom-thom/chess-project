@@ -28,10 +28,39 @@ impl Game{
         self.engine.think_iterative_deepening(&mut self.pos, limits)
     }
 
-    pub fn while_other_thinks(&mut self, pos: &mut Position, limit: &SearchLimits){
+        pub fn while_other_thinks(&mut self, limit: &SearchLimits){
         // TODO: Make it so that there is an instant way of aborting a search, for example using multi threding
         self.think(limit);
     }
 
+    pub fn undo_move(&mut self) -> Result<(), &'static str> {
+        self.pos.undo_move()?;
+        self.moves_played.pop()?;
+        Ok(())
+    }
 
+
+    pub fn sync_moves(&mut self, move_list: &MoveList)->Result<(), &'static str> {
+        let new_size = move_list.size();
+        let old_size = self.moves_played.size();
+        if self.moves_played == *move_list{
+            return Ok(());
+        }
+        if old_size < new_size{
+            if &move_list.as_slice()[0..self.moves_played.size()] == self.moves_played.as_slice(){
+                for bit_move in move_list.iter().skip(self.moves_played.size()){
+                    self.make_move(bit_move);
+                }
+            }
+        }
+        else if old_size > new_size{
+            for _ in 0..(old_size - new_size){
+                self.undo_move()?;
+            }
+        }
+        if self.moves_played == *move_list{
+            return Ok(());
+        }
+        Err("Unable to sync the moves as they are somehow incompatable")
+    }
 }
