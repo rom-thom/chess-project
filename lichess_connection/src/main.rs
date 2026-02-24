@@ -19,7 +19,7 @@ use crate::communication::{ComOutput, com_loop, install_panic_log, send_move};
 fn main() {
     let tt_size = 524288; // 2**19
     let mut game = Game::new(None, tt_size);
-    let mut limits = SearchLimits::new(Some(7), None); // This might change dynamicaly in the future
+    let mut limits = SearchLimits::new(Some(7), None, None);
 
 
     let stdin = io::stdin();
@@ -41,7 +41,7 @@ fn main() {
             ComOutput::Quit => {break;},
             ComOutput::PosHist(hist) => {game.sync_moves(&hist).expect("Coundn't sync the move history with the game position for some reason");},
             ComOutput::Go(go_params) => {
-                let thinking_result = game.think(&limits);
+                let thinking_result = game.think(&mut limits);
                 let best_move = thinking_result.best_move;
                 send_move(best_move, &mut logger, &mut sender);
             }

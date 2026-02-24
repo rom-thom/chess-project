@@ -24,14 +24,10 @@ impl Game{
         //self.engine.on_new_root();
     }
 
-    pub fn think(&mut self, limits: &SearchLimits) -> SearchResult{
+    pub fn think(&mut self, mut limits: &mut SearchLimits) -> SearchResult{
         self.engine.think_iterative_deepening(&mut self.pos, limits)
     }
 
-        pub fn while_other_thinks(&mut self, limit: &SearchLimits){
-        // TODO: Make it so that there is an instant way of aborting a search, for example using multi threding
-        self.think(limit);
-    }
 
     pub fn undo_move(&mut self) -> Result<(), &'static str> {
         self.pos.undo_move()?;

@@ -25,26 +25,27 @@ impl Engine{
 
 
 
-    pub fn think_iterative_deepening(&mut self, mut pos: &mut Position, limits: &SearchLimits) -> SearchResult{
+    pub fn think_iterative_deepening(&mut self, mut pos: &mut Position, mut limits: &mut SearchLimits) -> SearchResult{
 
         let max_depth = limits.max_depth.unwrap_or(64); // It wil never reach 64 in depth so that is safe
 
-        let mut result = SearchResult::default();
+        let mut result = None;
 
-        let start_time = time::Instant::now();
+        limits.start_new_search();
+        self.tt.new_search();
 
         for depth in 1..=max_depth {
-            result = self.negamax(&mut pos, depth);
+            let temp_result = self.negamax(&mut pos, depth, &mut limits);
 
-
-            // TODO: later make this multithreded
-            if let Some(time_ms) = limits.max_time_ms {
-                if time::Instant::now() - start_time <= time::Duration::from_millis(time_ms as u64){
-                    return result
-                }
+            if temp_result.aborted{
+                break;
             }
+            else{
+                result = Some(temp_result);
+            }
+
         }
-        result
+        result.expect("Here should be a move at this point")
 
     }
 }
