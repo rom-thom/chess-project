@@ -2,7 +2,7 @@ use std::time;
 
 use chess_core::position::Position;
 
-use crate::{eval::Evaluator, serch::serch_structs::{SearchLimits, SearchResult}, trans_pos_table::TT};
+use crate::{eval::Evaluator, serch::serch_structs::{SearchLimits, SearchResult}, trans_pos_table::TT, debug_file};
 
 
 
@@ -37,6 +37,9 @@ impl Engine{
         for depth in 1..=max_depth {
             let temp_result = self.negamax(&mut pos, depth, &mut limits);
 
+            debug_file::log_dbg("/tmp/debug_file.log", &format!("depth: {}, aborted = {}", depth, temp_result.aborted), &(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string())), file!(), line!()).expect("dbg funkakje");
+
+
             if temp_result.aborted{
                 break;
             }
@@ -45,7 +48,7 @@ impl Engine{
             }
 
         }
-        result.expect("Here should be a move at this point")
+        result.expect("Here i should make a fallback move instead of relying on the first loop finishing")
 
     }
 }

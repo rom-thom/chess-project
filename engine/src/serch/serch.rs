@@ -34,11 +34,14 @@ impl Engine{
 
         for m in legal_moves.iter(){
             pos.make_move(m);
-            let score = match self.negamax_helper(pos, serch_depth-1, &evaluator, &mut search_limit, -beta, -alpha){
+            let return_nega = self.negamax_helper(pos, serch_depth-1, &evaluator, &mut search_limit, -beta, -alpha);
+            pos.undo_move().expect("I just made a move, so i should be good");
+
+            let score = match return_nega{
                 NegamaxHelperReturn::Score(score_) => -score_,
                 NegamaxHelperReturn::Abort => return SearchResult::abort()
             };
-            pos.undo_move().expect("I just made a move, so i should be good");
+
             if score > best_score {
                 best_score = score;
                 best_move = Some(*m);
@@ -116,11 +119,13 @@ impl Engine{
         for m in legal_moves.iter(){
 
             pos.make_move(m); 
-            let current_score = match self.negamax_helper(pos, serch_depth-1, evaluator, &mut search_limit, -beta, -local_alpha){
+            let return_nega = self.negamax_helper(pos, serch_depth-1, evaluator, &mut search_limit, -beta, -local_alpha);
+            pos.undo_move().expect("I should be able to undo the move as it has just been done");
+            
+            let current_score = match return_nega{
                 NegamaxHelperReturn::Score(score_) => -score_,
                 NegamaxHelperReturn::Abort => return NegamaxHelperReturn::Abort
             };
-            pos.undo_move().expect("I should be able to undo the move as it has just been done");
 
 
             if current_score > best_score{
