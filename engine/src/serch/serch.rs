@@ -66,12 +66,6 @@ impl Engine{
 
     fn negamax_helper(&mut self, pos: &mut Position, serch_depth: usize, evaluator: &Evaluator, mut search_limit: &mut SearchLimits, alpha: i32, beta: i32) -> NegamaxHelperReturn{
 
-        if serch_depth == 0{ // When i reach the end of a branch
-            // TODO look for wether it can capture, and go deeper down that path until no one can capture
-
-
-            return NegamaxHelperReturn::Score(evaluator.evaluate(pos));
-        }
         
         let alpha_orig = alpha;
 
@@ -99,6 +93,12 @@ impl Engine{
             }
         }
 
+        if serch_depth == 0{ // When i reach the end of a branch
+            self.q_search(pos, search_limit);
+
+            return NegamaxHelperReturn::Score(evaluator.evaluate(pos));
+        }
+
 
         // TT checking
         let tt_probe_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8, local_alpha, beta);
@@ -108,7 +108,7 @@ impl Engine{
         }
 
         if let Some(ttm) = tt_probe_result.best {
-            legal_moves.bring_to_front(ttm); // Speedboost (den blei heile 1% raskare) 
+            legal_moves.bring_to_front(ttm); // Speedboost 
         }
 
         // I want to find the best move for the entry in TT

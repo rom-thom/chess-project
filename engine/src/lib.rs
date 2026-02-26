@@ -7,6 +7,7 @@ pub mod serch;
 pub mod trans_pos_table;
 pub mod engine;
 pub mod debug_file;
+pub mod time_spending;
 
 
 #[cfg(test)]

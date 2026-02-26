@@ -22,20 +22,20 @@ impl SearchResult{
 }
 
 pub struct SearchLimits{
-    pub stop: AtomicBool,
-    pub start_time: Instant,
+    stop: AtomicBool,
+    start_time: Instant,
     pub max_depth: Option<usize>,
-    pub max_time_ms: Option<usize>,
+    pub max_time_ms: Option<u64>,
 
-    pub node_count: usize, // this is for checking when i should check for time stops for speed
-    pub nodes_to_check: usize,
+    node_count: usize, // this is for checking when i should check for time stops for speed
+    nodes_to_check: usize,
 }
 
 
 impl SearchLimits{
     pub fn new(
         max_depth: Option<usize>,
-        max_time_ms: Option<usize>,
+        max_time_ms: Option<u64>,
         nodes_to_check: Option<usize>,
     ) -> Self {
         let nodes_to_check = nodes_to_check.unwrap_or(1024);
