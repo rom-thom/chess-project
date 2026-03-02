@@ -37,7 +37,7 @@ impl Engine{
         for depth in 1..=max_depth {
             let temp_result = self.negamax(&mut pos, depth, &mut limits);
 
-            debug_file::log_dbg("/tmp/debug_file.log", &format!("depth: {}, aborted = {}", depth, temp_result.aborted), &(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string())), file!(), line!()).expect("dbg funkakje");
+            debug_file::log_dbg("/tmp/debug_file.log", &format!("depth: {}, aborted = {}, eval = {}", depth, temp_result.aborted, temp_result.score), &(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string())), file!(), line!()).expect("dbg funkakje");
 
 
             if temp_result.aborted{
@@ -57,3 +57,18 @@ impl Engine{
 
 
 
+
+
+
+
+
+
+#[test]
+fn test_engine(){
+    let mut pos = Position::new(Some("4b2k/6pr/8/q3b3/1p5N/3B4/p3K1Q1/8 w - - 0 1".to_string()));
+    dbg!(&pos);
+    let mut engine = Engine::new(524288);
+    let mut limits = SearchLimits::new(Some(6), None, None);
+    dbg!(engine.think_iterative_deepening(&mut pos, &mut limits));
+
+}

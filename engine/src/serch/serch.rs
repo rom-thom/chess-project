@@ -4,67 +4,128 @@ use chess_core::{movegen::{self, MoveGen}, moves::{BitMove, Move, MoveList, Move
 use crate::{engine::Engine, score, serch::serch_structs::{SearchLimits, SearchResult}, trans_pos_table::Bound};
 use crate::eval::Evaluator;
 
+#[cfg(feature = "progress")]
+use indicatif::{ProgressBar, ProgressStyle};
 
+use std::time::Duration;
 
 
 
 
 impl Engine{
 
-    pub fn negamax(&mut self, pos: &mut Position, serch_depth: usize, mut search_limit: &mut SearchLimits) -> SearchResult{
-        if search_limit.check_stop(){
+    pub fn negamax(
+        &mut self,
+        pos: &mut Position,
+        serch_depth: usize,
+        mut search_limit: &mut SearchLimits,
+    ) -> SearchResult {
+        if search_limit.check_stop() {
             return SearchResult::abort();
         }
-        let mut alpha = -score::INF; // start out small and increse it to approach beta 
+
+        let mut alpha = -score::INF;
         let beta = score::INF;
 
-        let evaluator = Evaluator::default();
 
-
-        // I want to find a move here at the root, but i dont need it else where
         let mut best_move = None;
-        let mut best_score = -score::INF-1;
+        let mut best_score = -score::INF - 1;
         let legal_moves = MoveGen::legal_moves(pos);
 
-        
-
-        if legal_moves.size() == 0 || serch_depth == 0{ // TODO Separarte these
-            return SearchResult { score: self.eval.evaluate(pos), depth: 0, best_move: None, pv: MovePath::new_empty(), aborted: false};
+        if legal_moves.size() == 0 || serch_depth == 0 { // TODO: This is wrong as if size is 0 it has to check for either mate or stalemate (either of which evaluate doesn't capture)
+            return SearchResult {
+                score: self.eval.evaluate(pos),
+                depth: 0,
+                best_move: None,
+                pv: MovePath::new_empty(),
+                aborted: false,
+            };
         }
 
-        for m in legal_moves.iter(){
-            pos.make_move(m);
-            let return_nega = self.negamax_helper(pos, serch_depth-1, &evaluator, &mut search_limit, -beta, -alpha);
-            pos.undo_move().expect("I just made a move, so i should be good");
+        // -------- progress (feature gated) --------
+        #[cfg(feature = "progress")]
+        let pb = {
+            let pb = ProgressBar::new(legal_moves.size() as u64);
+            pb.set_style(
+                ProgressStyle::with_template(
+                    "{spinner:.green} root {pos}/{len} [{elapsed_precise}] {wide_bar} {percent}% ETA {eta_precise} {msg}",
+                )
+                .unwrap()
+                .progress_chars("=>-"),
+            );
 
-            let score = match return_nega{
+            // Force immediate visible activity:
+            pb.set_message("starting…");
+            pb.enable_steady_tick(Duration::from_millis(100)); // updates even before first inc()
+            pb.tick(); // draw ASAP (extra nudge)
+
+            pb
+        };
+        #[cfg(feature = "progress")]
+        pb.set_message(format!("depth: {}", serch_depth));
+        // -----------------------------------------
+
+        for m in legal_moves.iter() {
+            pos.make_move(m);
+
+            let return_nega = self.negamax_helper(
+                pos,
+                serch_depth - 1,
+                &mut search_limit,
+                -beta,
+                -alpha,
+            );
+
+            pos.undo_move()
+                .expect("I just made a move, so i should be good");
+
+            let score = match return_nega {
                 NegamaxHelperReturn::Score(score_) => -score_,
-                NegamaxHelperReturn::Abort => return SearchResult::abort()
+                NegamaxHelperReturn::Abort => {
+                    #[cfg(feature = "progress")]
+                    pb.finish_and_clear();
+                    return SearchResult::abort();
+                }
             };
 
             if score > best_score {
                 best_score = score;
                 best_move = Some(*m);
             }
+
             alpha = alpha.max(score);
-            if alpha >= beta { break; }
+
+            #[cfg(feature = "progress")]
+            {
+                pb.inc(1);
+            }
+
+            if alpha >= beta {
+                break;
+            }
         }
+
+        #[cfg(feature = "progress")]
+        pb.finish_and_clear();
 
         #[cfg(feature = "tt-stats")]
         self.tt.dump_stats(serch_depth);
         #[cfg(feature = "tt-stats")]
         self.tt.reset_stats();
-        
 
-        SearchResult { best_move: best_move, depth: serch_depth, score: best_score, pv: MovePath::new_empty(), aborted: false}
+        SearchResult {
+            score: best_score,
+            depth: serch_depth,
+            best_move,
+            pv: MovePath::new_empty(),
+            aborted: false,
+        }
     }
 
 
 
 
-
-
-    fn negamax_helper(&mut self, pos: &mut Position, serch_depth: usize, evaluator: &Evaluator, mut search_limit: &mut SearchLimits, alpha: i32, beta: i32) -> NegamaxHelperReturn{
+    fn negamax_helper(&mut self, pos: &mut Position, serch_depth: usize, mut search_limit: &mut SearchLimits, alpha: i32, beta: i32) -> NegamaxHelperReturn{
 
         
         let alpha_orig = alpha;
@@ -94,9 +155,7 @@ impl Engine{
         }
 
         if serch_depth == 0{ // When i reach the end of a branch
-            self.q_search(pos, search_limit);
-
-            return NegamaxHelperReturn::Score(evaluator.evaluate(pos));
+            return self.q_search(pos, search_limit);
         }
 
 
@@ -112,14 +171,14 @@ impl Engine{
         }
 
         // I want to find the best move for the entry in TT
-        let mut best_move = None;
+        let mut best_move: Option<BitMove> = None;
         let mut best_score = -score::INF-1;
 
 
         for m in legal_moves.iter(){
 
             pos.make_move(m); 
-            let return_nega = self.negamax_helper(pos, serch_depth-1, evaluator, &mut search_limit, -beta, -local_alpha);
+            let return_nega = self.negamax_helper(pos, serch_depth-1, &mut search_limit, -beta, -local_alpha);
             pos.undo_move().expect("I should be able to undo the move as it has just been done");
             
             let current_score = match return_nega{
@@ -155,7 +214,7 @@ impl Engine{
 }
 
 
-enum NegamaxHelperReturn{
+pub enum NegamaxHelperReturn{
     Score(i32),
     Abort
 }
@@ -164,9 +223,9 @@ enum NegamaxHelperReturn{
 
 #[test]
 fn test_serch(){
-    let mut pos = Position::new(Some("r1bqk2r/pppp1ppp/2n2n2/2b1p3/4P3/2NP1N2/PPP2PPP/R1BQKB1R w KQkq - 2 5".to_string()));
+    let mut pos = Position::new(Some("7k/5bpr/4R3/q3b3/1p5N/3B4/p3K1Q1/8 w - - 0 1".to_string()));
     dbg!(&pos);
-    let mut engine = Engine::new(8);
-    dbg!(engine.negamax(&mut pos, 5, &mut SearchLimits::new(None, None, None)));
+    let mut engine = Engine::new(524288);
+    dbg!(engine.negamax(&mut pos, 9, &mut SearchLimits::new(None, None, None)));
 
 }

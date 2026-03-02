@@ -1,6 +1,7 @@
 use chess_core::{movegen::MoveGen, position::Position};
 
-use crate::{engine::Engine, serch::serch_structs::SearchLimits};
+use crate::{engine::Engine, eval::Evaluator, serch::serch_structs::SearchLimits};
+use crate::serch::serch::NegamaxHelperReturn; // <- add this
 
 
 
@@ -9,19 +10,21 @@ use crate::{engine::Engine, serch::serch_structs::SearchLimits};
 
 impl Engine{
 
-    pub fn q_search(&self, pos: &mut Position, mut search_limit: &mut SearchLimits){
+    pub fn q_search(&self, pos: &mut Position, mut search_limit: &mut SearchLimits) -> NegamaxHelperReturn{
         // TODO: make a function that simply finds the q moves instead of just filtering out the non q ones
 
 
 
-        // TODO: make dis
+        // TODO: make dis funcy shuncy (funksion)
         // if search_limit.check_stop(){
         //     return NegamaxHelperReturn::Abort
         // }
 
         // let legal_moves = MoveGen::legal_moves(pos);
-        
 
+        return NegamaxHelperReturn::Score(self.eval.evaluate(pos))
+        
+        
     }
 }
 

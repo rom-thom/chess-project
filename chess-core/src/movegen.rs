@@ -185,7 +185,7 @@ impl Position{
         Flip side-to-move
         Update king square // TODO maybe for later
         Update bitboards / piece lists
-        Update hash (Zobrist) // TODO when implemented
+        Update hash (Zobrist)
         Push move history 
         Update Mailbox // TODO for later
     */
