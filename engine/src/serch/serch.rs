@@ -130,10 +130,10 @@ impl Engine{
         
         let alpha_orig = alpha;
 
-
-
         // alpha is pased down as -beta and vise versa, and we only ever change the alpha as we just change what we can improve ourselves (we cant change what the opponent else where can do) I think i just had a stroke writing that
         let mut local_alpha = alpha;
+
+        let moving_color = pos.current.side_to_move;
 
         if pos.current.halfmove_clock >= 100{
             return NegamaxHelperReturn::Score(0);
@@ -143,7 +143,9 @@ impl Engine{
             return NegamaxHelperReturn::Abort
         }
 
-        let mut legal_moves = MoveGen::legal_moves(pos);
+        let mut legal_moves = MoveGen::legal_moves(pos); // TODO: remove this after pseudolegal has been achieved
+        let mut pseudo_legal = MoveGen::pseudo_legal(pos);
+
 
         if legal_moves.is_empty() {
             if pos.in_check(pos.current.side_to_move){
@@ -167,7 +169,7 @@ impl Engine{
         }
 
         if let Some(ttm) = tt_probe_result.best {
-            legal_moves.bring_to_front(ttm); // Speedboost 
+            pseudo_legal.bring_to_front(ttm); // Speedboost 
         }
 
         // I want to find the best move for the entry in TT
@@ -175,9 +177,16 @@ impl Engine{
         let mut best_score = -score::INF-1;
 
 
-        for m in legal_moves.iter(){
+        for m in pseudo_legal.iter(){
+            if !MoveGen::castle_checks(pos, m, moving_color) {continue;}
 
             pos.make_move(m); 
+
+            if pos.in_check(moving_color){ 
+                pos.undo_move().expect("I should be able to undo the move as it has just been done");
+                continue;
+            }
+
             let return_nega = self.negamax_helper(pos, serch_depth-1, &mut search_limit, -beta, -local_alpha);
             pos.undo_move().expect("I should be able to undo the move as it has just been done");
             

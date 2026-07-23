@@ -193,6 +193,17 @@ impl MoveList{
             false
         }
     }
+
+    /// Remove element at idx by swapping in the last element.
+    /// Order is NOT preserved. O(1).
+    #[inline]
+    pub fn swap_remove_at(&mut self, idx: usize) -> Option<BitMove> {
+        if idx >= self.len { return None; }
+        let removed = self.moves[idx];
+        self.len -= 1;
+        self.moves[idx] = self.moves[self.len];
+        Some(removed)
+    }
 }
 
 

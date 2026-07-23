@@ -68,7 +68,7 @@ fn test_engine(){
     let mut pos = Position::new(Some("4b2k/6pr/8/q3b3/1p5N/3B4/p3K1Q1/8 w - - 0 1".to_string()));
     dbg!(&pos);
     let mut engine = Engine::new(524288);
-    let mut limits = SearchLimits::new(Some(6), None, None);
+    let mut limits = SearchLimits::new(Some(8), None, None);
     dbg!(engine.think_iterative_deepening(&mut pos, &mut limits));
 
 }

@@ -19,7 +19,7 @@ impl MoveGen {
 
     // Move generation (finds only the one for the color that currently is to move)
     // Finds all the pseudo legal (legal except for checks) moves in that position
-    pub fn pseudo_legal(pos: &Position, mut move_list: &mut MoveList){
+    pub fn fill_pseudo_legal(pos: &Position, mut move_list: &mut MoveList){
         let color = pos.current.side_to_move;
         MoveGen::generate_group_pawn_moves(pos, color, &mut move_list);
 
@@ -33,9 +33,11 @@ impl MoveGen {
         MoveGen::generate_normal_piece_moves(pos, Piece::King, color, &mut move_list);
     }
 
-    // q = Quiesence (fancy word for captures, promotions and all that is not quiet as in noone ca take and so on)
-    pub fn pseudo_legal_q(pos: &Position, mut move_list: &mut MoveList){
-        
+
+    pub fn pseudo_legal(pos: &Position) -> MoveList{
+        let mut pseudo_legal = MoveList::new_empty();
+        MoveGen::fill_pseudo_legal(pos, &mut pseudo_legal);
+        pseudo_legal
     }
 
 
@@ -45,8 +47,6 @@ impl MoveGen {
 
 
 
-
-    // mutable so that i dont need to clone (it is not changed)
     pub fn makes_self_check(pos: &mut Position, mov: BitMove) -> bool{
         let moving_color = pos.current.side_to_move;
 
@@ -59,49 +59,52 @@ impl MoveGen {
             return true
         }
 
-        // At this point we know the king is not in check after the move
-        //  if it ain't castling, then it's now legal
-        if mov.get_castle_side().is_none(){
-            pos.undo_move().expect("i did at the start of this fnction do a move, and so this should work");
-            return false;
+        pos.undo_move().expect("i did at the start of this fnction do a move, and so this should work");
+
+
+        if !MoveGen::castle_checks(pos, &mov, moving_color){
+            return true;
         }
 
+
+
+        false
+    }
+
+
+
+
+
+    /// This returns true if the move is legal under castling rules, meaning it is true if it is not castling, and if the castling is legal
+    pub fn castle_checks(pos: &Position, mov: &BitMove, moving_color: Color) -> bool{
+
+        let Some(castle_side) = mov.get_castle_side() else {return true};
+
+
         // Finds the path the king has to move trough. Used for finding wether opponent attacks that square
-        let mut kastle_path = mov.get_castle_side().map(|castle_side|{
-            match (moving_color, castle_side) {
-                (Color::White, Imposter::King)  => bitboard_consts::CASTLE_PATH_WHITE_KINGSIDE,
-                (Color::White, Imposter::Queen) => bitboard_consts::CASTLE_PATH_WHITE_QUEENSIDE,
-                (Color::Black, Imposter::King)  => bitboard_consts::CASTLE_PATH_BLACK_KINGSIDE,
-                (Color::Black, Imposter::Queen) => bitboard_consts::CASTLE_PATH_BLACK_QUEENSIDE,
-            }
-        }).expect("At this point the move should be castling as i just checked for that"); 
-
-
-
+        let mut kastle_path = match (moving_color, castle_side) {
+            (Color::White, Imposter::King)  => bitboard_consts::CASTLE_PATH_WHITE_KINGSIDE,
+            (Color::White, Imposter::Queen) => bitboard_consts::CASTLE_PATH_WHITE_QUEENSIDE,
+            (Color::Black, Imposter::King)  => bitboard_consts::CASTLE_PATH_BLACK_KINGSIDE,
+            (Color::Black, Imposter::Queen) => bitboard_consts::CASTLE_PATH_BLACK_QUEENSIDE,
+        };
 
 
         while let Some(kastle_path_idx) = kastle_path.pop_lsb() {
             if pos.is_square_attacked(Square::from_idx(kastle_path_idx).expect("Here should be an index of the board as i use pop_lsb"), !moving_color){
-                pos.undo_move().expect("i did at the start of this fnction do a move, and so this should work");
-                return true;
+                return false;
             }
         }
-
-        pos.undo_move().expect("i did at the start of this fnction do a move, and so this should work");
-        // it cant castle if it is attacked before the castling
-        if pos.in_check(moving_color){
-            return true
-        }
-
-        false
+        true
     }
+    
 
 
     pub fn fill_legal(pos: &mut Position, move_list: &mut MoveList){
             move_list.clear();
 
             let mut list = MoveList::new_empty();
-            MoveGen::pseudo_legal(pos, &mut list);
+            MoveGen::fill_pseudo_legal(pos, &mut list);
 
             for mov in list.iter(){
                 if !MoveGen::makes_self_check(pos, *mov){
