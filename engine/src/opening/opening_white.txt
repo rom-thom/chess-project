@@ -1,0 +1,3 @@
+3  e4 e5 Nf3 Nc6 Bc4
+1  e4 e5 Nf3 Nc6 Bb5
+5  e4 c5 Nf3 d6 d4

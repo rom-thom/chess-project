@@ -9,6 +9,7 @@ pub mod engine;
 pub mod debug_file;
 pub mod time_spending;
 
+pub mod opening;
 
 #[cfg(test)]
 mod tests {

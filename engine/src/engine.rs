@@ -2,7 +2,7 @@ use std::time;
 
 use chess_core::position::Position;
 
-use crate::{eval::Evaluator, serch::serch_structs::{SearchLimits, SearchResult}, trans_pos_table::TT, debug_file};
+use crate::{eval::Evaluator, serch::serch_structs::{SearchLimits, SearchResult}, trans_pos_table::TT, debug_file, opening};
 
 
 
@@ -28,7 +28,7 @@ impl Engine{
     pub fn think_iterative_deepening(&mut self, mut pos: &mut Position, mut limits: &mut SearchLimits) -> SearchResult{
 
         let max_depth = limits.max_depth.unwrap_or(64); // It wil never reach 64 in depth so that is safe
-
+        
         let mut result = None;
 
         limits.start_new_search();
