@@ -6,10 +6,6 @@ use crate::eval::Evaluator;
 
 
 
-///! For some reason this doesn't work at all
-
-
-
 impl Evaluator{
 pub fn is_threefold(&self, pos: &Position) -> bool {
     let key = pos.zobrist_key();
@@ -19,8 +15,7 @@ pub fn is_threefold(&self, pos: &Position) -> bool {
     let max_back = pos.current.halfmove_clock as usize;
 
     // scan backwards through history, up to max_back entries
-    for (j, snap) in pos.history.iter().rev().enumerate() {
-        if j >= max_back { break; }
+    for snap in pos.history.iter().rev().take(max_back) {
 
         if snap.zobrist_key == key {
             count += 1;

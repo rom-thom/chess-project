@@ -1,6 +1,5 @@
 use chess_core::{moves::{BitMove, MoveList}, position::{Color, Position}};
-use engine::{engine::Engine, serch::serch_structs::{SearchLimits, SearchResult}, opening::opening::{OpeningBook, WHITE_BOOK, BLACK_BOOK}};
-
+use engine::{engine::Engine, serch::serch_structs::{SearchLimits, SearchResult}, opening::opening::{OpeningBook, WHITE_BOOK, BLACK_BOOK}, debug_file::log_dbg, eval::evaluator::Evaluator};
 
 
 pub struct Game{
@@ -18,6 +17,17 @@ impl Game{
 
     pub fn make_move(&mut self, mov: &BitMove){
         self.pos.make_move(mov);
+
+        // let eval = Evaluator::default();
+        // let res = eval.is_threefold(&self.pos);
+        // log_dbg("/tmp/debug.log", &format!("zobrist_keys (threefold = {})", res), &self.pos.current.zobrist_key.as_u64(), file!(), line!()).expect("failed logging");
+        // let mut nr = 0.;
+        // for i in &self.pos.history{
+        //     log_dbg("/tmp/debug.log", &format!(" - {}: ", nr), &i.zobrist_key.as_u64(), file!(), line!()).expect("failed logging");
+        //     nr += 0.5;
+        // }
+        
+
         self.moves_played.add(*mov);
 
         //TODO: Chat wanted me to add this as wel to be able to change age stuf and so on in the tt
