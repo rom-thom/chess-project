@@ -129,8 +129,8 @@ impl MoveGen {
                                        .ok_or("No valid move was found in the moves_string when converting movestring to bitmove")?;
 
         let chars: Vec<char> = last_move.chars().collect();
-        if chars.len() < 4{return Err("the last move was to short to have first and last move".to_string())}
-        if chars.len() > 5{return Err("the last move was to long to only have first and last move and promotion".to_string())}
+        if chars.len() < 4{return Err(format!("the last move was to short to have first and last square ({})", chars.iter().collect::<String>()))}
+        if chars.len() > 5{return Err(format!("the last move was to long to only have first and last square and promotion ({})", chars.iter().collect::<String>()))}
 
         let start_square_str = chars[0].to_string() + &chars[1].to_string();
         let end_square_str = chars[2].to_string() +  &chars[3].to_string();

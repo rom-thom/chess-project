@@ -1951,7 +1951,7 @@ dependencies = [
  "futures",
  "futures-util",
  "licheszter",
- "rand 0.9.1",
+ "rand 0.10.2",
  "reqwest",
  "serde",
  "serde_json",

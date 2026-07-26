@@ -11,19 +11,21 @@ impl Evaluator{
         const MAX_PHASE: u32 = 24;
 
         let rook_count = pos.current.bitboards.get_bitboard(PieceIndex::WhiteRook).count_ones() + pos.current.bitboards.get_bitboard(PieceIndex::BlackRook).count_ones();
-        let knight_count = pos.current.bitboards.get_bitboard(PieceIndex::WhiteKing).count_ones() + pos.current.bitboards.get_bitboard(PieceIndex::BlackKnight).count_ones();
+        let knight_count = pos.current.bitboards.get_bitboard(PieceIndex::WhiteKnight).count_ones() + pos.current.bitboards.get_bitboard(PieceIndex::BlackKnight).count_ones();
         let bishop_count = pos.current.bitboards.get_bitboard(PieceIndex::WhiteBishop).count_ones() + pos.current.bitboards.get_bitboard(PieceIndex::BlackBishop).count_ones();
         let queen_count = pos.current.bitboards.get_bitboard(PieceIndex::WhiteQueen).count_ones() + pos.current.bitboards.get_bitboard(PieceIndex::BlackQueen).count_ones();
 
-        (rook_count*2 + knight_count + bishop_count + queen_count*4, MAX_PHASE)
+        let phase = rook_count*2 + knight_count + bishop_count + queen_count*4;
+        (phase.min(MAX_PHASE), MAX_PHASE)
 
     }
 
 
 
-    // start phase => phase = 0, endgame => phase = max_phase
+    // Opening: phase = max_phase
+    // Endgame: phase = 0
     fn blend_phases(&self, mg: i32, eg: i32, phase: i32, max_phase: i32)->i32{
-        (phase * (mg-eg))/max_phase + mg   // TODO this should be eg-mg, but for some rason that does not work.
+        eg + (mg - eg) * phase / max_phase
     }
 
     pub fn evaluate_piece_pos(&self, pos: &Position)-> i32{
@@ -39,15 +41,16 @@ impl Evaluator{
         for (piece_type_idx, piece_bb) in my_boards.iter().enumerate(){
             let mut piece_bb_loop = *piece_bb;
             while let Some(lonly_piece_idx) = piece_bb_loop.pop_lsb() {
-                mg_score += piece_square_table::SQUARE_VAL_TABLE_WHITE[0][piece_type_idx][lonly_piece_idx as usize] as i32;
-                eg_score += piece_square_table::SQUARE_VAL_TABLE_WHITE[1][piece_type_idx][lonly_piece_idx as usize] as i32;
+                mg_score += piece_square_table::SQUARE_VAL_TABLE_WHITE[0][piece_type_idx][piece_square_table::piece_square_idx(lonly_piece_idx as usize, color)] as i32;
+                eg_score += piece_square_table::SQUARE_VAL_TABLE_WHITE[1][piece_type_idx][piece_square_table::piece_square_idx(lonly_piece_idx as usize, color)] as i32;
             }
         }
+        // evaluating opponents piece evals
         for (piece_type_idx, piece_bb) in opp_boards.iter().enumerate(){
             let mut piece_bb_loop = *piece_bb;
             while let Some(lonly_piece_idx) = piece_bb_loop.pop_lsb() {
-                mg_score -= piece_square_table::SQUARE_VAL_TABLE_WHITE[0][piece_type_idx][piece_square_table::blackify_idx(lonly_piece_idx as usize)] as i32;
-                eg_score -= piece_square_table::SQUARE_VAL_TABLE_WHITE[1][piece_type_idx][piece_square_table::blackify_idx(lonly_piece_idx as usize)] as i32;
+                mg_score -= piece_square_table::SQUARE_VAL_TABLE_WHITE[0][piece_type_idx][piece_square_table::piece_square_idx(lonly_piece_idx as usize, !color)] as i32;
+                eg_score -= piece_square_table::SQUARE_VAL_TABLE_WHITE[1][piece_type_idx][piece_square_table::piece_square_idx(lonly_piece_idx as usize, !color)] as i32;
             }
         }
         let (phase, max_phase) = self.game_phase(pos);

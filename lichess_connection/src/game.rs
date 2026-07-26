@@ -1,5 +1,5 @@
-use chess_core::{moves::{BitMove, MoveList}, position::Position};
-use engine::{engine::Engine, serch::serch_structs::{SearchLimits, SearchResult}};
+use chess_core::{moves::{BitMove, MoveList}, position::{Color, Position}};
+use engine::{engine::Engine, serch::serch_structs::{SearchLimits, SearchResult}, opening::opening::{OpeningBook, WHITE_BOOK, BLACK_BOOK}};
 
 
 
@@ -24,7 +24,23 @@ impl Game{
         //self.engine.on_new_root();
     }
 
+
+    fn opening_move(&self) -> Option<BitMove> {
+        let mut rng = rand::rng();
+        let book: &'static OpeningBook = match self.pos.current.side_to_move {
+            Color::White => &WHITE_BOOK,
+            Color::Black => &BLACK_BOOK,
+        };
+        book.pick(&self.pos, &mut rng)
+    }
+
     pub fn think(&mut self, mut limits: &mut SearchLimits) -> SearchResult{
+        if let Some(book_move) = self.opening_move() {
+            let mut result = SearchResult::default();
+            result.best_move = Some(book_move);
+            println!("opening book move: {book_move}");
+            return result;
+        }
         self.engine.think_iterative_deepening(&mut self.pos, limits)
     }
 

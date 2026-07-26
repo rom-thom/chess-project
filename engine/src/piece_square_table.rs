@@ -136,19 +136,19 @@ pub const EG_KING_TABLE: [i16; 64] = [
 
 
 
-
-
 pub const SQUARE_VAL_TABLE_WHITE: [[[i16; 64]; 6]; 2] = [
     [MG_PAWN_TABLE, MG_KNIGHT_TABLE, MG_BISHOP_TABLE, MG_ROOK_TABLE, MG_QUEEN_TABLE, MG_KING_TABLE],
     [EG_PAWN_TABLE, EG_KNIGHT_TABLE, EG_BISHOP_TABLE, EG_ROOK_TABLE, EG_QUEEN_TABLE, EG_KING_TABLE]
 ];
 
 #[inline]
-pub fn blackify_idx(white_idx: usize) -> usize{
-    debug_assert!(white_idx < 64);
-    white_idx ^ 56 // Av ein eller anna grunn så flippar dette rada, men kolonna blir det same
+pub fn piece_square_idx(idx: usize, color: Color) -> usize{
+    debug_assert!(idx < 64);
+    match color {
+        Color::Black => idx, // Av ein eller anna grunn så flippar dette rada, men kolonna blir det same
+        Color::White => idx ^ 56
+    }
 }
-
 
 
 
@@ -157,7 +157,13 @@ pub fn blackify_idx(white_idx: usize) -> usize{
 #[test]
 
 fn test_square_table(){
-    _print_psqt(&EG_PAWN_TABLE, Color::Black);
+    dbg!("midlegame king");
+    _print_psqt(&MG_KING_TABLE, Color::White);
+    dbg!("endgame king");
+    _print_psqt(&EG_KING_TABLE, Color::White);
+    dbg!("midlegame pawn");
+    _print_psqt(&MG_PAWN_TABLE, Color::White);
+    dbg!("endgame pawn");
     _print_psqt(&EG_PAWN_TABLE, Color::White);
 
 }
@@ -178,7 +184,7 @@ fn _print_psqt(table: &[i16; 64], side_to_move: Color) {
         print!("{} |", rank + 1);
         for file in 0..8 {
             let idx = rank * 8 + file; // index as white
-            let idx = if side_to_move == Color::Black { blackify_idx(idx) } else { idx };
+            let idx = piece_square_idx(idx, side_to_move);
             let val = table[idx];
             print!("{:^width$}|", format!("{:+}", val), width = CELL_W);
         }

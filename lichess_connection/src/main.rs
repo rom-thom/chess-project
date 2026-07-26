@@ -29,9 +29,6 @@ fn main() {
     let mut logger = BufWriter::new(fs::File::create("/tmp/lichess_log.txt").expect("make this a path where you want to debug the lichess conversation"));
     install_panic_log("/tmp/rust_bot_panic.log"); // Make it print the panic messages to a tmp file
 
-
-
-
     for line in stdin.lock().lines() {
 
         let Ok(line) = line else { break };
