@@ -26,7 +26,7 @@ impl Engine{
 
         let mut alpha = -score::INF;
         let beta = score::INF;
-
+        let ply = 1;
 
         let mut best_move = None;
         let mut best_score = -score::INF - 1;
@@ -74,6 +74,8 @@ impl Engine{
                 &mut search_limit,
                 -beta,
                 -alpha,
+                ply,
+                
             );
 
             pos.undo_move()
@@ -125,7 +127,7 @@ impl Engine{
 
 
 
-    fn negamax_helper(&mut self, pos: &mut Position, serch_depth: usize, mut search_limit: &mut SearchLimits, alpha: i32, beta: i32) -> NegamaxHelperReturn{
+    fn negamax_helper(&mut self, pos: &mut Position, serch_depth: usize, mut search_limit: &mut SearchLimits, alpha: i32, beta: i32, ply: i32) -> NegamaxHelperReturn{
 
         
         let alpha_orig = alpha;
@@ -143,22 +145,16 @@ impl Engine{
             return NegamaxHelperReturn::Abort
         }
 
-        let mut legal_moves = MoveGen::legal_moves(pos); // TODO: remove this after pseudolegal has been achieved
-        let mut pseudo_legal = MoveGen::pseudo_legal(pos);
-
-
-        if legal_moves.is_empty() {
-            if pos.in_check(pos.current.side_to_move){
-                return NegamaxHelperReturn::Score(-score::INF)
-            }
-            else{
-                return NegamaxHelperReturn::Score(0);
-            }
+        if self.eval.is_threefold(pos) {
+            return NegamaxHelperReturn::Score(0);
         }
 
         if serch_depth == 0{ // When i reach the end of a branch
-            return self.q_search(pos, search_limit);
+            return self.q_search(pos, search_limit, alpha, beta, ply);
         }
+
+        let mut pseudo_legal = MoveGen::pseudo_legal(pos);
+
 
 
         // TT checking
@@ -176,6 +172,7 @@ impl Engine{
         let mut best_move: Option<BitMove> = None;
         let mut best_score = -score::INF-1;
 
+        let mut legal_move_found = false;
 
         for m in pseudo_legal.iter(){
             if !MoveGen::castle_checks(pos, m, moving_color) {continue;}
@@ -186,8 +183,9 @@ impl Engine{
                 pos.undo_move().expect("I should be able to undo the move as it has just been done");
                 continue;
             }
+            legal_move_found  = true;
 
-            let return_nega = self.negamax_helper(pos, serch_depth-1, &mut search_limit, -beta, -local_alpha);
+            let return_nega = self.negamax_helper(pos, serch_depth-1, &mut search_limit, -beta, -local_alpha, ply + 1);
             pos.undo_move().expect("I should be able to undo the move as it has just been done");
             
             let current_score = match return_nega{
@@ -206,6 +204,18 @@ impl Engine{
             if local_alpha >= beta{break;}
             
         }
+        
+        
+        if !legal_move_found{ // No legal moves in the position
+            if pos.in_check(pos.current.side_to_move){
+                return NegamaxHelperReturn::Score(-score::INF + ply)
+            }
+            else{
+                return NegamaxHelperReturn::Score(0);
+            }
+        }
+
+
         let bound = if best_score <= alpha_orig{
             Bound::Upper
         } else if best_score >= beta {

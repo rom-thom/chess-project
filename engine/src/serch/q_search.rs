@@ -10,7 +10,7 @@ use crate::serch::serch::NegamaxHelperReturn; // <- add this
 
 impl Engine{
 
-    pub fn q_search(&self, pos: &mut Position, mut search_limit: &mut SearchLimits) -> NegamaxHelperReturn{
+    pub fn q_search(&self, pos: &mut Position, mut search_limit: &mut SearchLimits, alpha: i32, beta: i32, ply: i32) -> NegamaxHelperReturn{
         // TODO: make a function that simply finds the q moves instead of just filtering out the non q ones
 
 
