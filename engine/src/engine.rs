@@ -2,7 +2,7 @@ use std::time;
 
 use chess_core::position::Position;
 
-use crate::{eval::Evaluator, serch::serch_structs::{SearchLimits, SearchResult}, trans_pos_table::TT, debug_file, opening};
+use crate::{debug_file, eval::Evaluator, opening, score, serch::serch_structs::{SearchLimits, SearchResult}, trans_pos_table::TT};
 
 
 
@@ -28,7 +28,7 @@ impl Engine{
     pub fn think_iterative_deepening(&mut self, mut pos: &mut Position, mut limits: &mut SearchLimits) -> SearchResult{
 
         let max_depth = limits.max_depth.unwrap_or(64); // It wil never reach 64 in depth so that is safe
-        
+
         let mut result = None;
 
         limits.start_new_search();
@@ -40,7 +40,7 @@ impl Engine{
             debug_file::log_dbg("/tmp/debug_file.log", &format!("depth: {}, aborted = {}, eval = {}", depth, temp_result.aborted, temp_result.score), &(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string())), file!(), line!()).expect("dbg funkakje");
 
 
-            if temp_result.aborted{
+            if temp_result.aborted {
                 break;
             }
             else{

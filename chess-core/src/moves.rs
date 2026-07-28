@@ -210,7 +210,7 @@ impl MoveList{
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub enum MoveType {
     #[default]
-    Quiet,
+    Normal,
     Promotion(Piece),
     EnPassant, // this also covers making an en passant aka going to squares forword
     Castling(Imposter)
@@ -222,7 +222,7 @@ impl BitMove{
     // Make a 16 bit u16 number representing a move
     #[inline] fn encode(mov: Move)->Self{
         let move_type_bits: u16 = match mov.move_type {
-            MoveType::Quiet => 0,
+            MoveType::Normal => 0,
             MoveType::EnPassant => 1,
             MoveType::Castling(side) => {
                 match side {
@@ -256,7 +256,7 @@ impl BitMove{
         let to = Square::from_idx(((bit_move.0 >> TO_SHIFT) & 0b111111) as u8).expect("decode move finds an un squarable index to:");
         let is_capture = (bit_move.0 & CAPTURE_BIT) != 0;
         let move_flag = match bit_move.0 & 0b111 {
-            0 => MoveType::Quiet,
+            0 => MoveType::Normal,
             1 => MoveType::EnPassant,
             2 => MoveType::Castling(Imposter::King),
             3 => MoveType::Castling(Imposter::Queen),

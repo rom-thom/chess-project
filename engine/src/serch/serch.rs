@@ -129,50 +129,35 @@ impl Engine{
 
     fn negamax_helper(&mut self, pos: &mut Position, serch_depth: usize, mut search_limit: &mut SearchLimits, alpha: i32, beta: i32, ply: i32) -> NegamaxHelperReturn{
 
+        // Checks to end the loops
         
-        let alpha_orig = alpha;
+        if self.eval.is_threefold(pos) { return NegamaxHelperReturn::Score(0); }
+        if pos.current.halfmove_clock >= 100{ return NegamaxHelperReturn::Score(0); }
+        if search_limit.check_stop(){ return NegamaxHelperReturn::Abort }
+        if serch_depth == 0{ return self.q_search(pos, search_limit, alpha, beta, ply); }
+
+
 
         // alpha is pased down as -beta and vise versa, and we only ever change the alpha as we just change what we can improve ourselves (we cant change what the opponent else where can do) I think i just had a stroke writing that
+        let alpha_orig = alpha;
         let mut local_alpha = alpha;
-
         let moving_color = pos.current.side_to_move;
-
-        if pos.current.halfmove_clock >= 100{
-            return NegamaxHelperReturn::Score(0);
-        }
-
-        if search_limit.check_stop(){
-            return NegamaxHelperReturn::Abort
-        }
-
-        if self.eval.is_threefold(pos) {
-            return NegamaxHelperReturn::Score(0);
-        }
-
-        if serch_depth == 0{ // When i reach the end of a branch
-            return self.q_search(pos, search_limit, alpha, beta, ply);
-        }
-
         let mut pseudo_legal = MoveGen::pseudo_legal(pos);
 
 
 
         // TT checking
-        let tt_probe_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8, local_alpha, beta);
+        let tt_probe_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8, alpha, beta, ply);
         
-        if let Some(tt_cutoff) = tt_probe_result.cutoff{
-            return NegamaxHelperReturn::Score(tt_cutoff)
-        }
+        if let Some(tt_cutoff) = tt_probe_result.cutoff{ return NegamaxHelperReturn::Score(tt_cutoff) }
+        if let Some(ttm) = tt_probe_result.best { pseudo_legal.bring_to_front(ttm); }
 
-        if let Some(ttm) = tt_probe_result.best {
-            pseudo_legal.bring_to_front(ttm); // Speedboost 
-        }
 
         // I want to find the best move for the entry in TT
         let mut best_move: Option<BitMove> = None;
         let mut best_score = -score::INF-1;
-
         let mut legal_move_found = false;
+
 
         for m in pseudo_legal.iter(){
             if !MoveGen::castle_checks(pos, m, moving_color) {continue;}
@@ -183,7 +168,7 @@ impl Engine{
                 pos.undo_move().expect("I should be able to undo the move as it has just been done");
                 continue;
             }
-            legal_move_found  = true;
+            legal_move_found = true;
 
             let return_nega = self.negamax_helper(pos, serch_depth-1, &mut search_limit, -beta, -local_alpha, ply + 1);
             pos.undo_move().expect("I should be able to undo the move as it has just been done");
@@ -204,27 +189,19 @@ impl Engine{
             if local_alpha >= beta{break;}
             
         }
-        
+
         
         if !legal_move_found{ // No legal moves in the position
-            if pos.in_check(pos.current.side_to_move){
-                return NegamaxHelperReturn::Score(-score::INF + ply)
-            }
-            else{
-                return NegamaxHelperReturn::Score(0);
-            }
+            if pos.in_check(pos.current.side_to_move){ return NegamaxHelperReturn::Score(-score::INF + ply) }
+            else{ return NegamaxHelperReturn::Score(0); }
         }
 
 
-        let bound = if best_score <= alpha_orig{
-            Bound::Upper
-        } else if best_score >= beta {
-            Bound::Lower
-        } else{
-            Bound::Exact
-        };
+        let bound = if best_score <= alpha_orig{ Bound::Upper } 
+            else if best_score >= beta { Bound::Lower } 
+            else{ Bound::Exact };
 
-        self.tt.store(pos.zobrist_key(), serch_depth as i8, best_score, bound, best_move);
+        self.tt.store(pos.zobrist_key(), serch_depth as i8, best_score, bound, best_move, ply);
 
         NegamaxHelperReturn::Score(best_score)
 

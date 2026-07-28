@@ -16,14 +16,14 @@ pub struct MoveGen; // Just like a namespace for move generation
 
 impl MoveGen {
 
-
+    #[inline]
     // Move generation (finds only the one for the color that currently is to move)
     // Finds all the pseudo legal (legal except for checks) moves in that position
-    pub fn fill_pseudo_legal(pos: &Position, mut move_list: &mut MoveList){
+    fn fill_pseudo_legal(pos: &Position, mut move_list: &mut MoveList){
         let color = pos.current.side_to_move;
         MoveGen::generate_group_pawn_moves(pos, color, &mut move_list);
 
-        // This just takes kare of the Quiet moves for those pieces
+        // This just takes kare of the Normal moves for those pieces
         MoveGen::generate_normal_piece_moves(pos, Piece::Bishop, color, &mut move_list);
         MoveGen::generate_normal_piece_moves(pos, Piece::Knight, color, &mut move_list);
         MoveGen::generate_normal_piece_moves(pos, Piece::Rook, color, &mut move_list);
@@ -40,9 +40,24 @@ impl MoveGen {
         pseudo_legal
     }
 
+    #[inline]
+    fn fill_pseudo_legal_q_moves(pos: &Position, mut move_list: &mut MoveList){
+        let color = pos.current.side_to_move;
+        MoveGen::generate_group_q_pawn_moves(pos, color, &mut move_list);
 
+        // This just takes kare of the Normal moves for those pieces
+        MoveGen::generate_normal_piece_q_moves(pos, Piece::Bishop, color, &mut move_list);
+        MoveGen::generate_normal_piece_q_moves(pos, Piece::Knight, color, &mut move_list);
+        MoveGen::generate_normal_piece_q_moves(pos, Piece::Rook, color, &mut move_list);
+        MoveGen::generate_normal_piece_q_moves(pos, Piece::Queen, color, &mut move_list);
+        MoveGen::generate_normal_piece_q_moves(pos, Piece::King, color, &mut move_list);
+    }
 
-
+    pub fn pseudo_legal_q_moves(pos: &Position) -> MoveList{
+        let mut qseudo_legal = MoveList::new_empty();
+        MoveGen::fill_pseudo_legal_q_moves(pos, &mut qseudo_legal);
+        qseudo_legal
+    }
 
 
 

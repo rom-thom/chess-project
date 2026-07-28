@@ -1,4 +1,5 @@
 use chess_core::{moves::BitMove, position::ZobristKey};
+use crate::score;
 
 
 
@@ -99,7 +100,7 @@ impl TT{
     /// This returns TTProbe, that if there exist a position in the table that maches the current position, it returns the best move, 
     /// a bool telling it that it hit, and a cutof. The cutoff is the score at the end if the depth was deep enough and None otherwise.
     /// It only returns a cutoff if it is safe to asume that that is the best posible score
-    pub fn probe(&self, key: ZobristKey, depth: i8, alpha: i32, beta: i32) -> TTProbe {
+    pub fn probe(&self, key: ZobristKey, depth: i8, alpha: i32, beta: i32, ply: i32) -> TTProbe {
 
         #[cfg(feature = "tt-stats")]
         self.stats.probes.fetch_add(1, Ordering::Relaxed);
@@ -121,12 +122,14 @@ impl TT{
         // Always return best move for ordering if present.
         let best = entry.best;
 
+        let score = TT::score_from_tt(entry.score, ply);
+
         // Only allow cutoff/return if entry depth is deep enough.
         if entry.depth >= depth {
             let cutoff = match entry.bound {
-                Bound::Exact => Some(entry.score),
-                Bound::Lower if entry.score >= beta => Some(entry.score),
-                Bound::Upper if entry.score <= alpha => Some(entry.score),
+                Bound::Exact => Some(score),
+                Bound::Lower if score >= beta => Some(score),
+                Bound::Upper if score <= alpha => Some(score),
                 _ => None,
             };
             #[cfg(feature = "tt-stats")]
@@ -142,7 +145,7 @@ impl TT{
     }
 
     /// Store an entry. `bound` should be decided by alpha_orig/beta logic.
-    pub fn store(&mut self, key: ZobristKey, depth: i8, score: i32, bound: Bound, best: Option<BitMove>) {
+    pub fn store(&mut self, key: ZobristKey, depth: i8, score: i32, bound: Bound, best: Option<BitMove>, ply: i32) {
         #[cfg(feature = "tt-stats")]
         self.stats.stores.fetch_add(1, Ordering::Relaxed);
 
@@ -165,16 +168,34 @@ impl TT{
             self.stats.replaces.fetch_add(1, Ordering::Relaxed);
         }
 
-
         if replace {
             self.table[idx] = TTEntry {
                 key: k,
                 depth,
-                score,
+                score: TT::score_to_tt(score, ply),
                 bound,
                 best,
                 age: self.age,
             };
+        }
+    }
+
+    fn score_to_tt(score: i32, ply: i32) -> i32 {
+        if score >= score::MATE_THRESHOLD {
+            score + ply
+        } else if score <= -score::MATE_THRESHOLD {
+            score - ply
+        } else {
+            score
+        }
+    }
+    fn score_from_tt(score: i32, ply: i32) -> i32 {
+        if score >= score::MATE_THRESHOLD {
+            score - ply
+        } else if score <= -score::MATE_THRESHOLD {
+            score + ply
+        } else {
+            score
         }
     }
 }
@@ -258,7 +279,7 @@ mod tests {
     #[test]
     fn probe_miss_on_empty() {
         let tt = TT::new(8);
-        let res = tt.probe(k(123), 4, -50, 50);
+        let res = tt.probe(k(123), 4, -50, 50, 0);
         assert!(!res.hit);
         assert!(res.cutoff.is_none());
         assert!(res.best.is_none());
@@ -267,9 +288,9 @@ mod tests {
     #[test]
     fn store_and_probe_exact_cutoff_when_depth_sufficient() {
         let mut tt = TT::new(8);
-        tt.store(k(42), 5, 17, Bound::Exact, None);
+        tt.store(k(42), 5, 17, Bound::Exact, None, 0);
 
-        let res = tt.probe(k(42), 5, -100, 100);
+        let res = tt.probe(k(42), 5, -100, 100, 0);
         assert!(res.hit);
         assert_eq!(res.cutoff, Some(17));
     }
@@ -277,10 +298,10 @@ mod tests {
     #[test]
     fn exact_entry_does_not_cutoff_if_depth_insufficient_but_is_a_hit() {
         let mut tt = TT::new(8);
-        tt.store(k(99), 3, 30, Bound::Exact, None);
+        tt.store(k(99), 3, 30, Bound::Exact, None, 0);
 
         // Request deeper than stored depth
-        let res = tt.probe(k(99), 4, -100, 100);
+        let res = tt.probe(k(99), 4, -100, 100, 0);
         assert!(res.hit);
         assert!(res.cutoff.is_none());
     }
@@ -288,15 +309,15 @@ mod tests {
     #[test]
     fn lower_bound_only_cutoffs_when_score_ge_beta() {
         let mut tt = TT::new(8);
-        tt.store(k(7), 6, 80, Bound::Lower, None);
+        tt.store(k(7), 6, 80, Bound::Lower, None, 0);
 
         // score(80) >= beta(50) => cutoff
-        let res1 = tt.probe(k(7), 6, -100, 50);
+        let res1 = tt.probe(k(7), 6, -100, 50, 0);
         assert!(res1.hit);
         assert_eq!(res1.cutoff, Some(80));
 
         // score(80) < beta(90) => no cutoff
-        let res2 = tt.probe(k(7), 6, -100, 90);
+        let res2 = tt.probe(k(7), 6, -100, 90, 0);
         assert!(res2.hit);
         assert!(res2.cutoff.is_none());
     }
@@ -304,15 +325,15 @@ mod tests {
     #[test]
     fn upper_bound_only_cutoffs_when_score_le_alpha() {
         let mut tt = TT::new(8);
-        tt.store(k(8), 6, -20, Bound::Upper, None);
+        tt.store(k(8), 6, -20, Bound::Upper, None, 0);
 
         // score(-20) <= alpha(-10) => cutoff
-        let res1 = tt.probe(k(8), 6, -10, 100);
+        let res1 = tt.probe(k(8), 6, -10, 100, 0);
         assert!(res1.hit);
         assert_eq!(res1.cutoff, Some(-20));
 
         // score(-20) <= alpha(-50)? no, -20 > -50 => no cutoff
-        let res2 = tt.probe(k(8), 6, -50, 100);
+        let res2 = tt.probe(k(8), 6, -50, 100, 0);
         assert!(res2.hit);
         assert!(res2.cutoff.is_none());
     }
@@ -321,18 +342,18 @@ mod tests {
     fn collision_same_index_different_key_must_not_hit() {
         // entries = 8 => mask = 7, so keys 1 and 9 both index to 1 (1 & 7 == 1, 9 & 7 == 1)
         let mut tt = TT::new(8);
-        tt.store(k(1), 5, 10, Bound::Exact, None);
+        tt.store(k(1), 5, 10, Bound::Exact, None, 0);
 
         // Overwrite same slot with different key
-        tt.store(k(9), 5, 20, Bound::Exact, None);
+        tt.store(k(9), 5, 20, Bound::Exact, None, 0);
 
         // Probing old key should miss due to key mismatch
-        let res_old = tt.probe(k(1), 5, -100, 100);
+        let res_old = tt.probe(k(1), 5, -100, 100, 0);
         assert!(!res_old.hit);
         assert!(res_old.cutoff.is_none());
 
         // New key should hit
-        let res_new = tt.probe(k(9), 5, -100, 100);
+        let res_new = tt.probe(k(9), 5, -100, 100, 0);
         assert!(res_new.hit);
         assert_eq!(res_new.cutoff, Some(20));
     }
@@ -342,10 +363,10 @@ mod tests {
         let mut tt = TT::new(8);
         let key = k(1234);
 
-        tt.store(key, 3, 11, Bound::Exact, None);
-        tt.store(key, 5, 22, Bound::Exact, None); // deeper should replace
+        tt.store(key, 3, 11, Bound::Exact, None, 0);
+        tt.store(key, 5, 22, Bound::Exact, None, 0); // deeper should replace
 
-        let res = tt.probe(key, 5, -100, 100);
+        let res = tt.probe(key, 5, -100, 100, 0);
         assert!(res.hit);
         assert_eq!(res.cutoff, Some(22));
     }
@@ -355,10 +376,10 @@ mod tests {
         let mut tt = TT::new(8);
         let key = k(555);
 
-        tt.store(key, 6, 99, Bound::Exact, None);
-        tt.store(key, 4, 11, Bound::Exact, None); // shallower, same age: should NOT replace
+        tt.store(key, 6, 99, Bound::Exact, None, 0);
+        tt.store(key, 4, 11, Bound::Exact, None, 0); // shallower, same age: should NOT replace
 
-        let res = tt.probe(key, 6, -100, 100);
+        let res = tt.probe(key, 6, -100, 100, 0);
         assert!(res.hit);
         assert_eq!(res.cutoff, Some(99));
     }
@@ -369,13 +390,13 @@ mod tests {
         let key = k(777);
 
         // Age 0 by default
-        tt.store(key, 6, 99, Bound::Exact, None);
+        tt.store(key, 6, 99, Bound::Exact, None, 0);
 
         // New search increments age; policy allows replacing if old.age != self.age
         tt.new_search();
-        tt.store(key, 2, 11, Bound::Exact, None); // shallower, but new age => replace
+        tt.store(key, 2, 11, Bound::Exact, None, 0); // shallower, but new age => replace
 
-        let res = tt.probe(key, 2, -100, 100);
+        let res = tt.probe(key, 2, -100, 100, 0);
         assert!(res.hit);
         assert_eq!(res.cutoff, Some(11));
     }

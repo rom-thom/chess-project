@@ -13,7 +13,7 @@ impl Position{
         let piece = self.current.bitboards.piece_on_square(from).expect("there should be a piece on the square that is moved from in the expand_move function, you twat");
         let mut move_type = match promo {
             Some(piece) => MoveType::Promotion(piece),
-            None => MoveType::Quiet // Quiet for now
+            None => MoveType::Normal // Quiet for now
         };
         
         let mut is_capture =  to.to_bitboard().intersects(self.current.bitboards.all_occupancy);

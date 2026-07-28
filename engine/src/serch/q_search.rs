@@ -1,5 +1,8 @@
+use chess_core::moves::BitMove;
 use chess_core::{movegen::MoveGen, position::Position};
 
+use crate::score;
+use crate::trans_pos_table::Bound;
 use crate::{engine::Engine, eval::Evaluator, serch::serch_structs::SearchLimits};
 use crate::serch::serch::NegamaxHelperReturn; // <- add this
 
@@ -10,7 +13,7 @@ use crate::serch::serch::NegamaxHelperReturn; // <- add this
 
 impl Engine{
 
-    pub fn q_search(&self, pos: &mut Position, mut search_limit: &mut SearchLimits, alpha: i32, beta: i32, ply: i32) -> NegamaxHelperReturn{
+    pub fn _q_search(&self, pos: &mut Position, mut search_limit: &mut SearchLimits, alpha: i32, beta: i32, ply: i32) -> NegamaxHelperReturn{
         // TODO: make a function that simply finds the q moves instead of just filtering out the non q ones
 
 
@@ -26,6 +29,98 @@ impl Engine{
         
         
     }
+
+
+    pub fn q_search(&mut self, pos: &mut Position, mut search_limit: &mut SearchLimits, alpha: i32, beta: i32, ply: i32) -> NegamaxHelperReturn{
+
+
+        // Checks to end the loops
+        
+        if self.eval.is_threefold(pos) { return NegamaxHelperReturn::Score(0); }
+        if pos.current.halfmove_clock >= 100{ return NegamaxHelperReturn::Score(0); }
+        if search_limit.check_stop(){ return NegamaxHelperReturn::Abort }
+
+
+        // alpha is pased down as -beta and vise versa, and we only ever change the alpha as we just change what we can improve ourselves (we cant change what the opponent else where can do) I think i just had a stroke writing that
+        let mut local_alpha = alpha;
+        let moving_color = pos.current.side_to_move;
+
+        let in_check = pos.in_check(pos.current.side_to_move);
+
+
+        if !in_check{
+            let stand_pat = self.eval.evaluate(pos);
+
+            if stand_pat >= beta {
+                return NegamaxHelperReturn::Score(stand_pat);
+            }
+
+            local_alpha = local_alpha.max(stand_pat);
+        }
+
+        let pseudo_legal = if in_check{ MoveGen::pseudo_legal(pos) }
+                                    else { MoveGen::pseudo_legal_q_moves(pos) };
+
+        //TODO: add trans støf later
+        // // TT checking
+        // let tt_probe_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8, alpha, beta, ply);
+        
+        // if let Some(tt_cutoff) = tt_probe_result.cutoff{ return NegamaxHelperReturn::Score(tt_cutoff) }
+        // if let Some(ttm) = tt_probe_result.best { pseudo_legal.bring_to_front(ttm); }
+
+
+        // I want to find the best move for the entry in TT
+        // let mut best_move: Option<BitMove> = None;
+        // let mut best_score = -score::INF-1;
+        let mut legal_move_found = false;
+
+
+        for m in pseudo_legal.iter(){
+            if !MoveGen::castle_checks(pos, m, moving_color) {continue;}
+
+            pos.make_move(m); 
+
+            if pos.in_check(moving_color){ 
+                pos.undo_move().expect("I should be able to undo the move as it has just been done");
+                continue;
+            }
+            legal_move_found = true;
+
+            let return_q_nega = self.q_search(pos, &mut search_limit, -beta, -local_alpha, ply + 1);
+            pos.undo_move().expect("I should be able to undo the move as it has just been done");
+            
+            let current_score = match return_q_nega{
+                NegamaxHelperReturn::Score(score_) => -score_,
+                NegamaxHelperReturn::Abort => return NegamaxHelperReturn::Abort
+            };
+
+
+            // best_score = best_score.max(current_score);
+            local_alpha = local_alpha.max(current_score);
+
+            if current_score >= beta { return NegamaxHelperReturn::Score(current_score); }
+            
+        }
+
+        if in_check && !legal_move_found {
+            return NegamaxHelperReturn::Score(-score::INF + ply);
+        }
+        if !legal_move_found{ // No legal q_moves moves in the position => q serch out "mike drop" // TODO: Check for stalemate!!!!!!!!!!!!!!
+            return NegamaxHelperReturn::Score(local_alpha)
+        }
+
+
+        // let bound = if best_score <= alpha_orig{ Bound::Upper } 
+        //     else if best_score >= beta { Bound::Lower } 
+        //     else{ Bound::Exact };
+
+        // self.tt.store(pos.zobrist_key(), serch_depth as i8, best_score, bound, best_move, ply); // TODO: trans stuf here
+
+        NegamaxHelperReturn::Score(local_alpha)
+
+    }
+
+
 }
 
 
