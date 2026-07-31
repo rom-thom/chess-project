@@ -9,7 +9,6 @@ use std::io::{self, BufRead, Write};
 
 use chess_core::moves::{BitMove, MoveList};
 use chess_core::{movegen::MoveGen, moves, position::Position};
-use engine::serch::move_picker::MovePicker;
 use engine::{engine::Engine, serch::serch_structs::SearchLimits};
 use crate::Game;
 

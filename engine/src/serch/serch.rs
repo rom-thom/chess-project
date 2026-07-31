@@ -1,7 +1,7 @@
 use std::{cmp::{max, min}, fmt::Debug, i32, sync::atomic::AtomicBool};
 
 use chess_core::{movegen::{self, MoveGen}, moves::{BitMove, Move, MoveList, MovePath}, position::{Color, Position}};
-use crate::{engine::Engine, score, serch::serch_structs::{SearchLimits, SearchResult}, trans_pos_table::Bound};
+use crate::{engine::Engine, score, serch::{move_ordering::MoveOrderer, serch_structs::{SearchLimits, SearchResult}}, trans_pos_table::Bound};
 use crate::eval::Evaluator;
 
 #[cfg(feature = "progress")]
@@ -150,7 +150,8 @@ impl Engine{
         let tt_probe_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8, alpha, beta, ply);
         
         if let Some(tt_cutoff) = tt_probe_result.cutoff{ return NegamaxHelperReturn::Score(tt_cutoff) }
-        if let Some(ttm) = tt_probe_result.best { pseudo_legal.bring_to_front(ttm); }
+
+        MoveOrderer::sort(pos, &mut pseudo_legal, tt_probe_result.best); // Sorts the moves to hopefully speed up the alpha beta
 
 
         // I want to find the best move for the entry in TT
