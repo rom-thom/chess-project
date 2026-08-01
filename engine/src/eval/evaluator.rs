@@ -1,7 +1,15 @@
 
-use chess_core::position::Position;
+use chess_core::{kastling::Imposter::King, piece::Piece, position::Position};
 
 use crate::debug_file::log_dbg;
+
+const KING_VAL: i32 = 100_000; // "My lord ..., he is priceless! Don't you dare put a value on him", "Well i just did bitch"
+const QUEEN_VAL: i32 = 900;
+const ROOK_VAL: i32 = 500;
+const BISHOP_VAL: i32 = 330;
+const KNIGHT_VAL: i32 = 320;
+const PAWN_VAL: i32 = 100;
+
 
 
 
@@ -10,15 +18,25 @@ pub struct Evaluator {
     pub vals: [i32; 5], // P,N,B,R,Q
 }
 
+
 impl Default for Evaluator {
     fn default() -> Self {
-        Self { vals: [100, 320, 330, 500, 900] }
+        Self { vals: [PAWN_VAL, KNIGHT_VAL, BISHOP_VAL, ROOK_VAL, QUEEN_VAL] }
     }
 }
 
 
 impl Evaluator{
-
+    pub fn piece_value(piece: Piece) -> i32 {
+        match piece {
+            Piece::Queen  => QUEEN_VAL,
+            Piece::Rook   => ROOK_VAL,
+            Piece::Bishop => BISHOP_VAL,
+            Piece::Knight => KNIGHT_VAL,
+            Piece::Pawn => PAWN_VAL,
+            Piece::King => KING_VAL
+        }
+    }
 
 
     // TODO this should be a lot more extensive, looking at the positional state and so on

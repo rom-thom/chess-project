@@ -7,7 +7,8 @@ use std::{iter, result, fmt};
 
 use crate::kastling::{Castling, CastlingSide, Imposter};
 use crate::movegen::MoveGen;
-use crate::position::Position;
+use crate::piece::PieceIndex::{BlackPawn, WhitePawn};
+use crate::position::{Color, Position};
 use crate::square::Square;
 use crate::board::{Bitboards};
 use crate::piece::{PieceIndex, Piece};
@@ -32,28 +33,35 @@ impl BitMove{
         BitMove::encode(Move{from, to, is_capture, move_type})
     }
 
-
+    #[inline]
     pub fn get_start_square(&self)->Square{
         Square::from_idx((self.0 >> FROM_SHIFT) as u8).expect("get_start_square (BitMove) finds an un squarable index from:")
     }
+    #[inline]
     pub fn get_end_square(&self)->Square{
         Square::from_idx(((self.0 >> TO_SHIFT) & 0b111111) as u8).expect("get end square (Bitmove) finds an un squarable index to:")
     }
-    pub fn get_piece(&self, boards_before_move: &Bitboards)->PieceIndex{
+    #[inline]
+    pub fn get_moving_piece(&self, boards_before_move: &Bitboards)->PieceIndex{
         boards_before_move.piece_on_square(self.get_start_square()).unwrap_or_else(|| panic!("found no piece on square that the piece moved from. Here is the all ocupancy board before move: {:?}, and here is the move: {:?}", boards_before_move.all_occupancy, Move::from(*self)))
     }
+    #[inline]
     pub fn is_capture(&self)->bool{
         (self.0 & CAPTURE_BIT) != 0
     }
+    #[inline]
     pub fn is_quiet(&self)->bool{
         self.0 & 0b111 == 0
     }
+    #[inline]
     pub fn is_double_pawn_push(&self)->bool{
         self.0 & 0b111 == 1 && !self.is_capture()
     }
+    #[inline]
     pub fn is_en_passant(&self)->bool{
         self.0 & 0b111 == 1 && self.is_capture()
     }
+    #[inline]
     pub fn get_castle_side(&self) -> Option<Imposter> {
         match self.0 & 0b111 {
             2 => Some(Imposter::King),
@@ -61,6 +69,11 @@ impl BitMove{
             _ => None
         }
     }
+    #[inline]
+    pub fn get_moving_color(&self, boards_before_move: &Bitboards)->Color{
+        self.get_moving_piece(boards_before_move).color()
+    }
+    #[inline]
     pub fn get_premotion_piece(&self)->Option<Piece>{
         match self.0 & 0b111 {
             4 => Some(Piece::Queen),
@@ -69,6 +82,19 @@ impl BitMove{
             7 => Some(Piece::Bishop),
             _ => None
         }
+    }
+    #[inline]
+    pub fn get_captured_piece(&self, boards_before_move: &Bitboards)->Option<PieceIndex>{
+        if !self.is_capture(){
+            return None;
+        }
+        if self.is_en_passant(){
+            match self.get_moving_color(boards_before_move) {
+                Color::Black => return Some(WhitePawn),
+                Color::White => return Some(BlackPawn)
+            }
+        }
+        boards_before_move.piece_on_square(self.get_end_square())
     }
 
 
@@ -119,7 +145,7 @@ impl MoveList{
             dbg!(mov);
         }
     }
-
+    #[inline]
     pub fn as_slice(&self) -> &[BitMove] { &self.moves[..self.len] }
 
 

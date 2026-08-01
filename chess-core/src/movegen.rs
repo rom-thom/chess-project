@@ -221,7 +221,7 @@ impl Position{
 
         let start_square = mov.get_start_square();
         let end_square = mov.get_end_square();
-        let piece_index = mov.get_piece(&old_bit_boards);
+        let piece_index = mov.get_moving_piece(&old_bit_boards);
         let piece = Piece::from_piece_index(&piece_index);
         
 

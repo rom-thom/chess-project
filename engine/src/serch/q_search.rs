@@ -2,6 +2,7 @@ use chess_core::moves::BitMove;
 use chess_core::{movegen::MoveGen, position::Position};
 
 use crate::score;
+use crate::serch::move_ordering::MoveOrderer;
 use crate::trans_pos_table::Bound;
 use crate::{engine::Engine, eval::Evaluator, serch::serch_structs::SearchLimits};
 use crate::serch::serch::NegamaxHelperReturn; // <- add this
@@ -58,8 +59,10 @@ impl Engine{
             local_alpha = local_alpha.max(stand_pat);
         }
 
-        let pseudo_legal = if in_check{ MoveGen::pseudo_legal(pos) }
+        let mut pseudo_legal = if in_check{ MoveGen::pseudo_legal(pos) }
                                     else { MoveGen::pseudo_legal_q_moves(pos) };
+
+        MoveOrderer::sort(pos, &mut pseudo_legal, None);
 
         //TODO: add trans støf later
         // // TT checking
