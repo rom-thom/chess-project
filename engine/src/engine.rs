@@ -32,10 +32,9 @@ impl Engine{
 
         let mut result = None;
 
-        // Do i make it here? <----
-
         limits.start_new_search();
         self.tt.new_search();
+        self.move_orderer.new_search();
 
         for depth in 1..=max_depth {
             let temp_result = self.negamax(&mut pos, depth, &mut limits);

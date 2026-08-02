@@ -26,13 +26,13 @@ impl Engine{
 
         let mut alpha = -score::INF;
         let beta = score::INF;
-        let ply = 1;
+        let ply = 0;
 
         let mut best_move = None;
         let mut best_score = -score::INF - 1;
-        let legal_moves = MoveGen::legal_moves(pos);
+        let mut legal_moves = MoveGen::legal_moves(pos);
 
-        if legal_moves.size() == 0 || serch_depth == 0 { // TODO: This is wrong as if size is 0 it has to check for either mate or stalemate (either of which evaluate doesn't capture)
+        if legal_moves.size() == 0 || serch_depth == 0 { // TODO: This is wrong as, if size is 0 it has to check for either mate or stalemate (either of which evaluate doesn't capture)
             return SearchResult {
                 score: self.eval.evaluate(pos),
                 depth: 0,
@@ -41,6 +41,11 @@ impl Engine{
                 aborted: false,
             };
         }
+
+        let tt_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8, alpha, beta,0,);
+        self.move_orderer.sort(pos, &mut legal_moves, tt_result.best, ply);
+
+
 
         // -------- progress (feature gated) --------
         #[cfg(feature = "progress")]
@@ -74,7 +79,7 @@ impl Engine{
                 &mut search_limit,
                 -beta,
                 -alpha,
-                ply,
+                ply + 1,
                 
             );
 

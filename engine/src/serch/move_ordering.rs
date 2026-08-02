@@ -13,12 +13,22 @@ impl MoveOrderer{
     pub fn new() -> Self{
         Self{killer_moves: [[None, None]; MAX_PLY]}
     }
+    pub fn new_search(&mut self) {
+        self.killer_moves = [[None; 2]; MAX_PLY];
+    }
 
     pub fn on_beta_cutoff(&mut self, mov: &BitMove, ply: i32){
-        let ply_ = ply as usize;
-        if self.killer_moves[ply_][0] != Some(*mov){
-            self.killer_moves[ply_][1] = self.killer_moves[ply_][0];
-            self.killer_moves[ply_][0] = Some(*mov)
+        let Ok(ply) = usize::try_from(ply) else {
+            return;
+        };
+
+        let Some(killers) = self.killer_moves.get_mut(ply) else {
+            return;
+        };
+
+        if killers[0] != Some(*mov) {
+            killers[1] = killers[0];
+            killers[0] = Some(*mov);
         }
     }
 
@@ -74,6 +84,17 @@ impl MoveOrderer{
 
         if Some(mov) == self.killer_moves[ply as usize][0]{return score::KILLER_SCORE + 100} 
         if Some(mov) == self.killer_moves[ply as usize][1]{return score::KILLER_SCORE - 100}
+
+        if let Ok(ply) = usize::try_from(ply) {
+            if let Some(killers) = self.killer_moves.get(ply) {
+                if Some(mov) == killers[0] {
+                    return score::KILLER_SCORE + 100;
+                }
+                if Some(mov) == killers[1] {
+                    return score::KILLER_SCORE - 100;
+                }
+            }
+        }
 
         // TODO Continue giving a score for differente types of move like the killer ones and history good ones
 
