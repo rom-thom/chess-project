@@ -1,14 +1,7 @@
 
 use chess_core::{kastling::Imposter::King, piece::Piece, position::Position};
 
-use crate::debug_file::log_dbg;
-
-const KING_VAL: i32 = 100_000; // "My lord ..., he is priceless! Don't you dare put a value on him", "Well i just did bitch"
-const QUEEN_VAL: i32 = 900;
-const ROOK_VAL: i32 = 500;
-const BISHOP_VAL: i32 = 330;
-const KNIGHT_VAL: i32 = 320;
-const PAWN_VAL: i32 = 100;
+use crate::{debug_file::log_dbg, constants::score};
 
 
 
@@ -21,7 +14,7 @@ pub struct Evaluator {
 
 impl Default for Evaluator {
     fn default() -> Self {
-        Self { vals: [PAWN_VAL, KNIGHT_VAL, BISHOP_VAL, ROOK_VAL, QUEEN_VAL] }
+        Self { vals: [score::PAWN_VAL, score::KNIGHT_VAL, score::BISHOP_VAL, score::ROOK_VAL, score::QUEEN_VAL] }
     }
 }
 
@@ -29,12 +22,12 @@ impl Default for Evaluator {
 impl Evaluator{
     pub fn piece_value(piece: Piece) -> i32 {
         match piece {
-            Piece::Queen  => QUEEN_VAL,
-            Piece::Rook   => ROOK_VAL,
-            Piece::Bishop => BISHOP_VAL,
-            Piece::Knight => KNIGHT_VAL,
-            Piece::Pawn => PAWN_VAL,
-            Piece::King => KING_VAL
+            Piece::Queen  => score::QUEEN_VAL,
+            Piece::Rook   => score::ROOK_VAL,
+            Piece::Bishop => score::BISHOP_VAL,
+            Piece::Knight => score::KNIGHT_VAL,
+            Piece::Pawn => score::PAWN_VAL,
+            Piece::King => score::KING_VAL
         }
     }
 

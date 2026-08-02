@@ -19,7 +19,7 @@ use crate::communication::{ComOutput, com_loop, install_panic_log, send_move};
 fn main() {
     let tt_size = 524288; // 2**19
     let mut game = Game::new(None, tt_size);
-    let mut limits = SearchLimits::new(Some(8), Some(18_000), None);
+    let mut limits = SearchLimits::new(None, Some(18_000), None);
 
     let mut time_usage = TimeUsage::new(None, None, None, None, None, None);
 

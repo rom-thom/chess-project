@@ -2,7 +2,7 @@ use std::time;
 
 use chess_core::position::Position;
 
-use crate::{debug_file, eval::Evaluator, opening, score, serch::serch_structs::{SearchLimits, SearchResult}, trans_pos_table::TT};
+use crate::{constants::score, debug_file, eval::Evaluator, opening, serch::{move_ordering::MoveOrderer, serch_structs::{SearchLimits, SearchResult}}, stored_moves::trans_pos_table::TT};
 
 
 
@@ -10,13 +10,14 @@ use crate::{debug_file, eval::Evaluator, opening, score, serch::serch_structs::{
 
 pub struct Engine{
     pub tt: TT,
-    pub eval: Evaluator
+    pub eval: Evaluator,
+    pub move_orderer: MoveOrderer
 }
 
 
 impl Engine{
     pub fn new(tt_size: usize) -> Self{
-        Self { tt: TT::new(tt_size), eval: Evaluator::default() }
+        Self { tt: TT::new(tt_size), eval: Evaluator::default(), move_orderer: MoveOrderer::default()}
     }
 
 
@@ -30,6 +31,8 @@ impl Engine{
         let max_depth = limits.max_depth.unwrap_or(64); // It wil never reach 64 in depth so that is safe
 
         let mut result = None;
+
+        // Do i make it here? <----
 
         limits.start_new_search();
         self.tt.new_search();

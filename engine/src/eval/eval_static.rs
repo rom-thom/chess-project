@@ -5,7 +5,7 @@ use chess_core::position::{Color, Position};
 use chess_core::piece::PieceIndex;
 use chess_core::board::Bitboards;
 
-use crate::piece_square_table;
+use crate::constants::piece_square_table;
 use super::Evaluator;
 
 

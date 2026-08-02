@@ -1,0 +1,1 @@
+pub const MAX_PLY: usize = 128; // You wil never serch this deep

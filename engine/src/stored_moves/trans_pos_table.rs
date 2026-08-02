@@ -1,5 +1,5 @@
 use chess_core::{moves::BitMove, position::ZobristKey};
-use crate::score;
+use crate::constants::score;
 
 
 

@@ -1,10 +1,9 @@
 
 
-pub mod piece_square_table;
-pub mod score;
+pub mod constants;
 pub mod eval;
 pub mod serch;
-pub mod trans_pos_table;
+pub mod stored_moves;
 pub mod engine;
 pub mod debug_file;
 pub mod time_spending;

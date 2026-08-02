@@ -1,9 +1,9 @@
 use chess_core::moves::BitMove;
 use chess_core::{movegen::MoveGen, position::Position};
 
-use crate::score;
+use crate::constants::score;
 use crate::serch::move_ordering::MoveOrderer;
-use crate::trans_pos_table::Bound;
+use crate::stored_moves::trans_pos_table::Bound;
 use crate::{engine::Engine, eval::Evaluator, serch::serch_structs::SearchLimits};
 use crate::serch::serch::NegamaxHelperReturn; // <- add this
 
@@ -14,22 +14,6 @@ use crate::serch::serch::NegamaxHelperReturn; // <- add this
 
 impl Engine{
 
-    pub fn _q_search(&self, pos: &mut Position, mut search_limit: &mut SearchLimits, alpha: i32, beta: i32, ply: i32) -> NegamaxHelperReturn{
-        // TODO: make a function that simply finds the q moves instead of just filtering out the non q ones
-
-
-
-        // TODO: make dis funcy shuncy (funksion)
-        // if search_limit.check_stop(){
-        //     return NegamaxHelperReturn::Abort
-        // }
-
-        // let legal_moves = MoveGen::legal_moves(pos);
-
-        return NegamaxHelperReturn::Score(self.eval.evaluate(pos))
-        
-        
-    }
 
 
     pub fn q_search(&mut self, pos: &mut Position, mut search_limit: &mut SearchLimits, alpha: i32, beta: i32, ply: i32) -> NegamaxHelperReturn{
@@ -62,7 +46,7 @@ impl Engine{
         let mut pseudo_legal = if in_check{ MoveGen::pseudo_legal(pos) }
                                     else { MoveGen::pseudo_legal_q_moves(pos) };
 
-        MoveOrderer::sort(pos, &mut pseudo_legal, None);
+        self.move_orderer.sort(pos, &mut pseudo_legal, None, ply);
 
         //TODO: add trans støf later
         // // TT checking

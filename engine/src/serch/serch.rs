@@ -1,7 +1,7 @@
-use std::{cmp::{max, min}, fmt::Debug, i32, sync::atomic::AtomicBool};
+use std::i32;
 
 use chess_core::{movegen::{self, MoveGen}, moves::{BitMove, Move, MoveList, MovePath}, position::{Color, Position}};
-use crate::{engine::Engine, score, serch::{move_ordering::MoveOrderer, serch_structs::{SearchLimits, SearchResult}}, trans_pos_table::Bound};
+use crate::{engine::Engine, constants::score, serch::{move_ordering::MoveOrderer, serch_structs::{SearchLimits, SearchResult}}, stored_moves::trans_pos_table::Bound};
 use crate::eval::Evaluator;
 
 #[cfg(feature = "progress")]
@@ -97,14 +97,14 @@ impl Engine{
 
             alpha = alpha.max(score);
 
+
             #[cfg(feature = "progress")]
             {
                 pb.inc(1);
             }
 
-            if alpha >= beta {
-                break;
-            }
+            if alpha >= beta {break;}
+
         }
 
         #[cfg(feature = "progress")]
@@ -151,7 +151,7 @@ impl Engine{
         
         if let Some(tt_cutoff) = tt_probe_result.cutoff{ return NegamaxHelperReturn::Score(tt_cutoff) }
 
-        MoveOrderer::sort(pos, &mut pseudo_legal, tt_probe_result.best); // Sorts the moves to hopefully speed up the alpha beta
+        self.move_orderer.sort(pos, &mut pseudo_legal, tt_probe_result.best, ply); // Sorts the moves to hopefully speed up the alpha beta
 
 
         // I want to find the best move for the entry in TT
@@ -187,7 +187,12 @@ impl Engine{
 
             local_alpha = local_alpha.max(current_score);
 
-            if local_alpha >= beta{break;}
+            if local_alpha >= beta{
+                if !m.is_capture() && m.get_premotion_piece().is_none(){
+                    self.move_orderer.on_beta_cutoff(m, ply);
+                }
+                break;
+            }
             
         }
 

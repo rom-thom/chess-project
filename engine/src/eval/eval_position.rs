@@ -1,6 +1,6 @@
 use chess_core::position::Position;
 
-use crate::piece_square_table;
+use crate::constants::piece_square_table;
 use chess_core::piece::PieceIndex;
 use super::Evaluator;
 
