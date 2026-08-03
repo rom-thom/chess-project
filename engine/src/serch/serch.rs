@@ -42,7 +42,7 @@ impl Engine{
             };
         }
 
-        let tt_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8, alpha, beta,0,);
+        let tt_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8, alpha, beta,0);
         self.move_orderer.sort(pos, &mut legal_moves, tt_result.best, ply);
 
 
@@ -108,7 +108,10 @@ impl Engine{
                 pb.inc(1);
             }
 
-            if alpha >= beta {break;}
+            if alpha >= beta {
+                self.move_orderer.on_beta_cutoff(m, ply, &pos.current.bitboards, serch_depth);
+                break;
+            }
 
         }
 
@@ -193,9 +196,9 @@ impl Engine{
             local_alpha = local_alpha.max(current_score);
 
             if local_alpha >= beta{
-                if !m.is_capture() && m.get_premotion_piece().is_none(){
-                    self.move_orderer.on_beta_cutoff(m, ply);
-                }
+                
+                self.move_orderer.on_beta_cutoff(m, ply, &pos.current.bitboards, serch_depth);
+                
                 break;
             }
             
@@ -203,7 +206,7 @@ impl Engine{
 
         
         if !legal_move_found{ // No legal moves in the position
-            if pos.in_check(pos.current.side_to_move){ return NegamaxHelperReturn::Score(-score::INF + ply) }
+            if pos.in_check(pos.current.side_to_move){ return NegamaxHelperReturn::Score(-score::MATE + ply) }
             else{ return NegamaxHelperReturn::Score(0); }
         }
 

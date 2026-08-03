@@ -90,7 +90,7 @@ impl Engine{
         }
 
         if in_check && !legal_move_found {
-            return NegamaxHelperReturn::Score(-score::INF + ply);
+            return NegamaxHelperReturn::Score(-score::MATE + ply);
         }
         if !legal_move_found{ // No legal q_moves moves in the position => q serch out "mike drop" // TODO: Check for stalemate!!!!!!!!!!!!!!
             return NegamaxHelperReturn::Score(local_alpha)

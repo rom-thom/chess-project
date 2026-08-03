@@ -32,6 +32,15 @@ impl std::fmt::Display for Color{
         }
     }
 }
+impl Color{
+    pub fn idx(&self) -> usize{
+        match self {
+            Color::White => 0,
+            Color::Black => 1
+        }
+    }
+}
+
 
 #[derive(Debug, PartialEq, Clone)] // Do not derive Clone, as i dont want to do that in a time critical way // Screw this coment, i want to test
 pub struct Position{

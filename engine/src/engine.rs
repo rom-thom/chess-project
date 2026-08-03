@@ -39,7 +39,7 @@ impl Engine{
         for depth in 1..=max_depth {
             let temp_result = self.negamax(&mut pos, depth, &mut limits);
 
-            debug_file::log_dbg("/tmp/debug_file.log", &format!("depth: {}, aborted = {}, eval = {}", depth, temp_result.aborted, temp_result.score), &(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string())), file!(), line!()).expect("dbg funkakje");
+            debug_file::log_dbg("/tmp/debug_file.log", &format!("depth: {}, aborted = {}, eval = {}, mate distance {}", depth, temp_result.aborted, temp_result.score, score::MATE - temp_result.score.abs() as i32), &(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string())), file!(), line!()).expect("dbg funkakje");
 
 
             if temp_result.aborted {
@@ -47,6 +47,17 @@ impl Engine{
             }
             else{
                 result = Some(temp_result);
+            }
+
+            // If i found the shoutest mate i want it now
+            if let Some(result) = result.as_ref() {  
+                if result.score.abs() >= score::MATE_THRESHOLD {
+                    let mate_distance = score::MATE - result.score.abs();
+
+                    if depth as i32 >= mate_distance {
+                        break;
+                    }
+                }
             }
 
         }
