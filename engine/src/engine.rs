@@ -39,7 +39,15 @@ impl Engine{
         for depth in 0..=max_depth {
             let temp_result = self.negamax(&mut pos, depth, &mut limits);
 
-            debug_file::log_dbg("/tmp/debug_file.log", &format!("depth: {}, aborted = {}, eval = {}, mate distance {}", depth, temp_result.aborted, temp_result.score, score::MATE - temp_result.score.abs() as i32), &(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string())), file!(), line!()).expect("dbg funkakje");
+            if temp_result.score.abs() >= score::MATE_THRESHOLD{
+                debug_file::log_dbg("/tmp/chess_log/search_scores.log", &format!("depth: {}, aborted = {}, mate distance {}", depth, temp_result.aborted, (score::MATE - temp_result.score.abs()) * temp_result.score.signum() as i32), Some(&(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string()))), file!(), line!()).expect("dbg funkakje");
+            }
+            else if temp_result.aborted{
+                debug_file::log_dbg("/tmp/chess_log/search_scores.log", &format!("Aborted"), None::<&String>, file!(), line!()).expect("dbg funkakje");
+            }
+            else{
+                debug_file::log_dbg("/tmp/chess_log/search_scores.log", &format!("depth: {}, aborted = {}, eval = {}", depth, temp_result.aborted, temp_result.score), Some(&(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string()))), file!(), line!()).expect("dbg funkakje");
+            }
 
 
             if temp_result.aborted {
@@ -54,7 +62,7 @@ impl Engine{
                 if result.score.abs() >= score::MATE_THRESHOLD {
                     let mate_distance = score::MATE - result.score.abs();
 
-                    if depth as i32 >= mate_distance {
+                    if depth as i32 >= mate_distance - 1 {
                         break;
                     }
                 }

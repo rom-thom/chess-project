@@ -48,7 +48,7 @@ fn main() {
                     limits.max_time_ms = time_usage.time_to_use_ms(game.pos.current.side_to_move).map(|ms| ms);
                 }
 
-                log_dbg("/tmp/debug_file.log", "Time to use: ", &limits.max_time_ms.unwrap_or(67), file!(), line!()).unwrap();
+                log_dbg("/tmp/chess_log/search_scores.log", "Time to use: ", Some(&limits.max_time_ms.unwrap_or(67)), file!(), line!()).unwrap();
                 let thinking_result = game.think(&mut limits);
                 let best_move = thinking_result.best_move;
                 send_move(best_move, &mut logger, &mut sender);

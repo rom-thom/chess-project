@@ -17,11 +17,15 @@ pub fn append_line<P: AsRef<Path>>(path: P, line: &str) -> std::io::Result<()> {
 pub fn log_dbg<P: AsRef<Path>, T: std::fmt::Debug>(
     path: P,
     label: &str,
-    value: &T,
+    value: Option<&T>,
     file: &str,
     line: u32,
 ) -> std::io::Result<()> {
     let mut f = OpenOptions::new().create(true).append(true).open(path)?;
-    writeln!(f, "[{}:{}] {} = {:#?}", file, line, label, value)?;
+    match value {
+        Some(val) => writeln!(f, "[{}:{}] {} = {:#?}", file, line, label, val)?,
+        None => writeln!(f, "[{}:{}] {}", file, line, label)?
+
+    }
     Ok(())
 }
