@@ -16,7 +16,7 @@ impl Engine{
 
 
 
-    pub fn q_search(&mut self, pos: &mut Position, mut search_limit: &mut SearchLimits, alpha: i32, beta: i32, ply: i32) -> NegamaxHelperReturn{
+    pub fn q_search(&mut self, pos: &mut Position, search_limit: &mut SearchLimits, alpha: i32, beta: i32, ply: i32) -> NegamaxHelperReturn{
 
 
         // Checks to end the loops
@@ -27,38 +27,53 @@ impl Engine{
 
 
         // alpha is pased down as -beta and vise versa, and we only ever change the alpha as we just change what we can improve ourselves (we cant change what the opponent else where can do) I think i just had a stroke writing that
+        let alpha_original = alpha;
         let mut local_alpha = alpha;
         let moving_color = pos.current.side_to_move;
 
         let in_check = pos.in_check(pos.current.side_to_move);
 
 
-        if !in_check{
-            let stand_pat = self.eval.evaluate(pos);
-
-            if stand_pat >= beta {
-                return NegamaxHelperReturn::Score(stand_pat);
-            }
-
-            local_alpha = local_alpha.max(stand_pat);
-        }
-
         let mut pseudo_legal = if in_check{ MoveGen::pseudo_legal(pos) }
                                     else { MoveGen::pseudo_legal_q_moves(pos) };
 
-        self.move_orderer.sort(pos, &mut pseudo_legal, None, ply);
 
-        //TODO: add trans støf later
-        // // TT checking
-        // let tt_probe_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8, alpha, beta, ply);
+
+        // TT checking
+        let tt_probe_result = self.tt.probe(pos.zobrist_key(), 0, alpha, beta, ply, true);
         
-        // if let Some(tt_cutoff) = tt_probe_result.cutoff{ return NegamaxHelperReturn::Score(tt_cutoff) }
-        // if let Some(ttm) = tt_probe_result.best { pseudo_legal.bring_to_front(ttm); }
+        if let Some(tt_cutoff) = tt_probe_result.cutoff{ return NegamaxHelperReturn::Score(tt_cutoff) }
 
+
+        self.move_orderer.sort(pos, &mut pseudo_legal, tt_probe_result.best, ply);
 
         // I want to find the best move for the entry in TT
-        // let mut best_move: Option<BitMove> = None;
-        // let mut best_score = -score::INF-1;
+        let mut best_move: Option<BitMove> = None;
+
+        let mut best_score = if in_check {-score::INF} 
+                                  else {
+                                        let stand_pat = self.eval.evaluate(pos);
+
+                                        if stand_pat >= beta {
+                                            self.tt.store(
+                                                pos.zobrist_key(),
+                                                0,
+                                                stand_pat,
+                                                Bound::Lower,
+                                                None,
+                                                ply,
+                                                true,
+                                            );
+
+                                            return NegamaxHelperReturn::Score(stand_pat);
+                                        }
+
+                                        local_alpha = local_alpha.max(stand_pat);
+                                        stand_pat
+                                    };
+
+
+
         let mut legal_move_found = false;
 
 
@@ -73,7 +88,7 @@ impl Engine{
             }
             legal_move_found = true;
 
-            let return_q_nega = self.q_search(pos, &mut search_limit, -beta, -local_alpha, ply + 1);
+            let return_q_nega = self.q_search(pos, &mut *search_limit, -beta, -local_alpha, ply + 1);
             pos.undo_move().expect("I should be able to undo the move as it has just been done");
             
             let current_score = match return_q_nega{
@@ -81,11 +96,17 @@ impl Engine{
                 NegamaxHelperReturn::Abort => return NegamaxHelperReturn::Abort
             };
 
+            if current_score > best_score{
+                best_score = current_score;
+                best_move = Some(*m);
+            }
 
-            // best_score = best_score.max(current_score);
             local_alpha = local_alpha.max(current_score);
 
-            if current_score >= beta { return NegamaxHelperReturn::Score(current_score); }
+            if current_score >= beta { 
+                self.tt.store(pos.zobrist_key(), 0, current_score, Bound::Lower, Some(*m), ply, true);
+                return NegamaxHelperReturn::Score(current_score); 
+            }
             
         }
 
@@ -97,11 +118,11 @@ impl Engine{
         }
 
 
-        // let bound = if best_score <= alpha_orig{ Bound::Upper } 
-        //     else if best_score >= beta { Bound::Lower } 
-        //     else{ Bound::Exact };
+        let bound = if best_score <= alpha_original{ Bound::Upper } 
+            else if best_score >= beta { Bound::Lower } 
+            else{ Bound::Exact };
 
-        // self.tt.store(pos.zobrist_key(), serch_depth as i8, best_score, bound, best_move, ply); // TODO: trans stuf here
+        self.tt.store(pos.zobrist_key(), 0, best_score, bound, best_move, ply, true); // TODO: trans stuf here
 
         NegamaxHelperReturn::Score(local_alpha)
 

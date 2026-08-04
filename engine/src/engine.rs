@@ -36,7 +36,7 @@ impl Engine{
         self.tt.new_search();
         self.move_orderer.new_search();
 
-        for depth in 1..=max_depth {
+        for depth in 0..=max_depth {
             let temp_result = self.negamax(&mut pos, depth, &mut limits);
 
             debug_file::log_dbg("/tmp/debug_file.log", &format!("depth: {}, aborted = {}, eval = {}, mate distance {}", depth, temp_result.aborted, temp_result.score, score::MATE - temp_result.score.abs() as i32), &(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string())), file!(), line!()).expect("dbg funkakje");
@@ -61,7 +61,7 @@ impl Engine{
             }
 
         }
-        result.expect("Here i should make a fallback move instead of relying on the first loop finishing")
+        result.expect("the zero'th depth doesnt get interupted, so it always returns a valid non aborted result")
 
     }
 }

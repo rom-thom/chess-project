@@ -20,7 +20,7 @@ impl Engine{
         serch_depth: usize,
         mut search_limit: &mut SearchLimits,
     ) -> SearchResult {
-        if search_limit.check_stop() {
+        if serch_depth != 0 && search_limit.check_stop(){
             return SearchResult::abort();
         }
 
@@ -32,17 +32,18 @@ impl Engine{
         let mut best_score = -score::INF - 1;
         let mut legal_moves = MoveGen::legal_moves(pos);
 
-        if legal_moves.size() == 0 || serch_depth == 0 { // TODO: This is wrong as, if size is 0 it has to check for either mate or stalemate (either of which evaluate doesn't capture)
-            return SearchResult {
-                score: self.eval.evaluate(pos),
-                depth: 0,
-                best_move: None,
-                pv: MovePath::new_empty(),
-                aborted: false,
-            };
+        if legal_moves.size() == 0{
+            if pos.in_check(pos.current.side_to_move){ // This means mate i think
+                return SearchResult { best_move, score: -score::MATE, pv:MovePath::new_empty(), depth: 0, aborted: false }
+            }
+            return SearchResult { best_move, score: 0, pv:MovePath::new_empty(), depth: 0, aborted: false }
         }
 
-        let tt_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8, alpha, beta,0);
+        if serch_depth == 0{
+            return SearchResult {score: self.eval.evaluate(pos), depth: 0, best_move: Some(*legal_moves.get(0).expect("there should be a legal move as i just checked wether it was empty")), pv: MovePath::new_empty(), aborted: false,};
+        }
+        
+        let tt_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8, alpha, beta,ply, false);
         self.move_orderer.sort(pos, &mut legal_moves, tt_result.best, ply);
 
 
@@ -118,11 +119,6 @@ impl Engine{
         #[cfg(feature = "progress")]
         pb.finish_and_clear();
 
-        #[cfg(feature = "tt-stats")]
-        self.tt.dump_stats(serch_depth);
-        #[cfg(feature = "tt-stats")]
-        self.tt.reset_stats();
-
         SearchResult {
             score: best_score,
             depth: serch_depth,
@@ -155,7 +151,7 @@ impl Engine{
 
 
         // TT checking
-        let tt_probe_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8, alpha, beta, ply);
+        let tt_probe_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8, alpha, beta, ply, false);
         
         if let Some(tt_cutoff) = tt_probe_result.cutoff{ return NegamaxHelperReturn::Score(tt_cutoff) }
 
@@ -215,7 +211,7 @@ impl Engine{
             else if best_score >= beta { Bound::Lower } 
             else{ Bound::Exact };
 
-        self.tt.store(pos.zobrist_key(), serch_depth as i8, best_score, bound, best_move, ply);
+        self.tt.store(pos.zobrist_key(), serch_depth as i8, best_score, bound, best_move, ply, false);
 
         NegamaxHelperReturn::Score(best_score)
 
