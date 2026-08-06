@@ -25,11 +25,11 @@ fn main() {
 
     let stdin = io::stdin();
     let mut sender = io::stdout();
-    let mut logger = BufWriter::new(fs::File::create("/tmp/chess_log/lichess_log.txt").expect("make this a path where you want to debug the lichess conversation"));
-    install_panic_log("/tmp/rust_bot_panic.log"); // Make it print the panic messages to a tmp file
+    let mut logger = BufWriter::new(fs::File::create("chess_log/lichess_log.txt").expect("make this a path where you want to debug the lichess conversation"));
+    install_panic_log("rust_bot_panic.log"); // Make it print the panic messages to a tmp file
 
     for line in stdin.lock().lines() { // When it doesnt send something this kinda just whates fro the next line to be sendt
-
+        
         let Ok(line) = line else { break };
 
         let com_output = com_loop(line, &mut logger, &mut sender);
@@ -51,15 +51,14 @@ fn main() {
 
                 let max_depth = go_params.depth.map(|depth| depth as usize);
 
-                let mut limits = SearchLimits::new(max_depth, max_time_ms, None);
+                let mut limits = SearchLimits::new(max_depth, max_time_ms, go_params.nodes, None);
 
-                log_dbg("/tmp/chess_log/search_scores.log", "Time to use: ", Some(&limits.max_time_ms.unwrap_or(67)), file!(), line!()).unwrap();
+                log_dbg("chess_log/search_scores.log", "Time to use: ", Some(&limits.max_time_ms.unwrap_or(67)), file!(), line!()).unwrap();
                 let thinking_result = game.think(&mut limits);
                 let best_move = thinking_result.best_move;
                 send_move(best_move, &mut logger, &mut sender);
             }
         };
-
     }
 }
 

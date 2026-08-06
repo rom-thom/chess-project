@@ -232,6 +232,6 @@ fn test_serch(){
     let mut pos = Position::new(Some("7k/5bpr/4R3/q3b3/1p5N/3B4/p3K1Q1/8 w - - 0 1".to_string()));
     dbg!(&pos);
     let mut engine = Engine::new(524288);
-    dbg!(engine.negamax(&mut pos, 9, &mut SearchLimits::new(None, None, None)));
+    dbg!(engine.negamax(&mut pos, 9, &mut SearchLimits::new(None, None, None, None)));
 
 }

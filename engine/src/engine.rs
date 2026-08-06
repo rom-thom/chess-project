@@ -28,7 +28,7 @@ impl Engine{
 
     pub fn think_iterative_deepening(&mut self, mut pos: &mut Position, mut limits: &mut SearchLimits) -> SearchResult{
 
-        let max_depth = limits.max_depth.unwrap_or(64); // It wil never reach 64 in depth so that is safe
+        let max_depth = limits.max_depth.unwrap_or(64); // It wil never reach 64 in depth so that is safe (unless i become god or something)
 
         let mut result = None;
 
@@ -40,13 +40,13 @@ impl Engine{
             let temp_result = self.negamax(&mut pos, depth, &mut limits);
 
             if temp_result.score.abs() >= score::MATE_THRESHOLD{
-                debug_file::log_dbg("/tmp/chess_log/search_scores.log", &format!("depth: {}, aborted = {}, mate distance {}", depth, temp_result.aborted, (score::MATE - temp_result.score.abs()) * temp_result.score.signum() as i32), Some(&(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string()))), file!(), line!()).expect("dbg funkakje");
+                debug_file::log_dbg("chess_log/search_scores.log", &format!("depth: {depth}, aborted = {}, mate distance {}", temp_result.aborted, (score::MATE - temp_result.score.abs()) * temp_result.score.signum() as i32), Some(&(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string()))), file!(), line!()).expect("dbg funkakje");
             }
             else if temp_result.aborted{
-                debug_file::log_dbg("/tmp/chess_log/search_scores.log", &format!("Aborted"), None::<&String>, file!(), line!()).expect("dbg funkakje");
+                debug_file::log_dbg("chess_log/search_scores.log", &format!("depth: {depth}, Aborted"), None::<&String>, file!(), line!()).expect("dbg funkakje");
             }
             else{
-                debug_file::log_dbg("/tmp/chess_log/search_scores.log", &format!("depth: {}, aborted = {}, eval = {}", depth, temp_result.aborted, temp_result.score), Some(&(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string()))), file!(), line!()).expect("dbg funkakje");
+                debug_file::log_dbg("chess_log/search_scores.log", &format!("depth: {depth}, eval = {}", temp_result.score), Some(&(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string()))), file!(), line!()).expect("dbg funkakje");
             }
 
 
@@ -89,7 +89,7 @@ fn test_engine(){
     let mut pos = Position::new(Some("4b2k/6pr/8/q3b3/1p5N/3B4/p3K1Q1/8 w - - 0 1".to_string()));
     dbg!(&pos);
     let mut engine = Engine::new(524288);
-    let mut limits = SearchLimits::new(Some(8), None, None);
+    let mut limits = SearchLimits::new(Some(8), None, None, None);
     dbg!(engine.think_iterative_deepening(&mut pos, &mut limits));
 
 }

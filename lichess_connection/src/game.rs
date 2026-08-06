@@ -20,10 +20,10 @@ impl Game{
 
         // let eval = Evaluator::default();
         // let res = eval.is_threefold(&self.pos);
-        // log_dbg("/tmp/debug.log", &format!("zobrist_keys (threefold = {})", res), &self.pos.current.zobrist_key.as_u64(), file!(), line!()).expect("failed logging");
+        // log_dbg("debug.log", &format!("zobrist_keys (threefold = {})", res), &self.pos.current.zobrist_key.as_u64(), file!(), line!()).expect("failed logging");
         // let mut nr = 0.;
         // for i in &self.pos.history{
-        //     log_dbg("/tmp/debug.log", &format!(" - {}: ", nr), &i.zobrist_key.as_u64(), file!(), line!()).expect("failed logging");
+        //     log_dbg("debug.log", &format!(" - {}: ", nr), &i.zobrist_key.as_u64(), file!(), line!()).expect("failed logging");
         //     nr += 0.5;
         // }
         

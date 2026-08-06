@@ -163,17 +163,3 @@ static ZOBRIST: OnceLock<Zobrist> = OnceLock::new();
 pub fn zob() -> &'static Zobrist {
     ZOBRIST.get_or_init(|| Zobrist::new(0x9E3770B9AF4A7C15))
 }
-
-
-
-
-#[test]
-fn test_zobrist(){
-    let s = Zobrist::new(0x9E3770B9AF4A7C15);
-    for _ in 0..9{
-        dbg!(&s);
-    }
-}
-
-
-

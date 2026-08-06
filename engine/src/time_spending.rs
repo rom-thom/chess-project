@@ -70,7 +70,7 @@ impl TimeUsage{
         let my_time = match self.my_time_ms(my_color) {
             Some(t) => t,
             None => {
-                log_dbg("/tmp/chess_log/search_scores.log", "my_time_ms()_returned None", None::<&String>, file!(), line!()).expect("Oh no it feiled");
+                log_dbg("chess_log/search_scores.log", "my_time_ms()_returned None", None::<&String>, file!(), line!()).expect("Oh no it feiled");
                 return None
         }
         };

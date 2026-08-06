@@ -26,6 +26,7 @@ pub struct SearchLimits{
     start_time: Instant,
     pub max_depth: Option<usize>,
     pub max_time_ms: Option<u64>,
+    pub max_nodes: Option<u64>,
 
     node_count: usize, // this is for checking when i should check for time stops for speed
     nodes_to_check: usize,
@@ -36,6 +37,7 @@ impl SearchLimits{
     pub fn new(
         max_depth: Option<usize>,
         max_time_ms: Option<u64>,
+        max_nodes: Option<u64>,
         nodes_to_check: Option<usize>,
     ) -> Self {
         let nodes_to_check = nodes_to_check.unwrap_or(1024);
@@ -44,6 +46,7 @@ impl SearchLimits{
             start_time: Instant::now(),
             max_depth,
             max_time_ms,
+            max_nodes,
             node_count: 0,
             nodes_to_check,
         }
@@ -52,22 +55,35 @@ impl SearchLimits{
     pub fn start_new_search(&mut self){
         self.start_time = Instant::now();
         self.node_count = 0;
-        self.stop.store(false, std::sync::atomic::Ordering::Relaxed);
     }
 
     pub fn should_stop(&self) -> bool{
         if self.stop.load(std::sync::atomic::Ordering::Relaxed){
             return true;
         }
-        if let Some(limit) = self.max_time_ms {
-            self.start_time.elapsed() >= std::time::Duration::from_millis(limit as u64)
-        } else {
-            false
+        if let Some(time_limit) = self.max_time_ms {
+            if self.start_time.elapsed() >= std::time::Duration::from_millis(time_limit as u64){
+                return true;
+            }
         }
+        if let Some(node_limit) = self.max_nodes{
+            if self.node_count >= node_limit as usize{
+                return true
+            }
+        }
+
+        false
     }
 
     pub fn check_stop(&mut self) -> bool{
         self.node_count += 1;
+
+        // Node limits must be checked on every node. Sorry speed, thats the rule
+        if let Some(max_nodes) = self.max_nodes {
+            if self.node_count >= max_nodes as usize{
+                return true;
+            }
+        }
 
         if self.node_count % self.nodes_to_check == 0{
             return self.should_stop();
