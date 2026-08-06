@@ -5,7 +5,7 @@ use crate::moves::{BitMove, MoveList, MoveType};
 use crate::piece::{Piece, PieceIndex};
 use crate::square::{Square};
 use crate::kastling::{Castling, CastlingSide, Imposter};
-use crate::zobrist::{Zobrist, ZobristKey};
+use crate::zobrist::{ZobristKey};
 use crate::{attack, position, zobrist};
 use crate::bitboard_consts::{self, CORNERS};
 use crate::position::{Color, Position};

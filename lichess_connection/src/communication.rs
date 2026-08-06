@@ -12,7 +12,7 @@ use chess_core::{movegen::MoveGen, moves, position::Position};
 use engine::{engine::Engine, serch::serch_structs::SearchLimits};
 use crate::Game;
 
-use std::fs; // For printing the prosess to a fil
+use std::{fs, vec}; // For printing the prosess to a fil
 use std::io::BufWriter;
 
 
@@ -70,10 +70,15 @@ pub fn com_loop<W: Write>(line: String, mut logger: &mut W, mut sender: &mut io:
         return ComOutput::NewGame
     } else if cmd == "quit" {
         return ComOutput::Quit
-    } else if cmd.starts_with("position ") {
-        let history = parse_position_moves(cmd);
-        return ComOutput::PosHist(parse_movelist(history, Position::new(None)))
 
+    } else if cmd.starts_with("position ") {
+        match parse_position(cmd) {
+            Ok(position) => return ComOutput::Position(position),
+            Err(error) => {
+                log_and_send(&mut logger, &mut sender, &format!("info string Invalid position command: {error}"),);
+                return ComOutput::Nada;
+            }
+        }
     } else if cmd.starts_with("go") {
         let go_params = parse_go(cmd);
         return ComOutput::Go(go_params)
@@ -95,10 +100,16 @@ pub enum ComOutput{
     Nada,
     NewGame,
     Quit,
-    PosHist(MoveList),
+    Position(PositionParams),
     Go(GoParams)
 }
 
+
+#[derive(Debug)]
+pub struct PositionParams {
+    pub fen: Option<String>,
+    pub moves: MoveList,
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct GoParams {
@@ -163,20 +174,47 @@ fn parse_go(cmd: &str) -> GoParams {
 
 
 
+fn parse_position(cmd: &str)-> Result<PositionParams, String>{
+    let tokens: Vec<&str> = cmd.split_whitespace().collect();
 
-fn parse_position_moves(cmd: &str) -> Vec<String> {
-    // cmd is the full line, e.g. "position startpos moves e2e4 e7e5"
-    if let Some(idx) = cmd.find(" moves ") {
-        let moves_part = &cmd[idx + " moves ".len()..];
-        moves_part.split_whitespace().map(|s| s.to_string()).collect()
-    } else {
+    let mut idx = 1;
+
+    let fen  = match tokens.get(idx).copied() {
+        Some("startpos") => {
+            idx += 1;
+            None
+        },
+        Some("fen") => {
+            if tokens.len() < idx + 7{
+                return Err("Incomplete fen... you gay or something".to_string());
+            }
+            let fen_string = tokens[idx + 1..idx + 7].join(" ");
+            idx += 7;
+            Some(fen_string)
+        },  
+        Some(other) =>{
+            return Err(format!("The values after 'position' in the uci command was: {other}, i don't understand that)"))
+        }
+        None => return Err("Positioncommand was empty".to_string())    
+    };
+
+    let string_moves = if tokens.len() == idx{
         Vec::new()
-    }
+    } else{
+        if tokens[idx] != "moves" {
+            return Err(format!("expected moves, received {}", tokens[idx]));
+        };
+        tokens[idx + 1 ..].iter().map(|m| m.to_string()).collect()
+    };
+
+    let start_pos = Position::new(fen.clone());
+    let moves = parse_movelist(string_moves, start_pos);
+
+    Result::Ok(PositionParams{fen, moves})
 }
 
 
 
 
 
-
-
+// position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves e2e4

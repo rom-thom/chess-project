@@ -90,30 +90,3 @@ fn play_random_engine(starting_fen_string: Option<String>, your_color: Color){
 
 
 
-
-
-
-#[test]
-fn test_count(){
-    let mut pos = Position::new(Some("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ".to_string()));
-    assert_eq!(197281  , _outer_perft(&mut pos, 4));
-    pos = Position::new(Some("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ".to_string()));
-    assert_eq!(4085603 , _outer_perft(&mut pos, 4));
-    pos = Position::new(Some("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ".to_string()));
-    assert_eq!(43238 , _outer_perft(&mut pos, 4));
-    pos = Position::new(Some("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1".to_string()));
-    assert_eq!(422333 , _outer_perft(&mut pos, 4));
-    pos = Position::new(Some("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8  ".to_string()));
-    assert_eq!(62379 , _outer_perft(&mut pos, 3));
-}
-
-#[test]
-fn test_speed(){
-    dbg!("Previous results: ");
-    dbg!("23 s");
-    dbg!("13 s");
-    dbg!("3.9 s");
-    let mut pos = Position::new(Some("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ".to_string()));
-    dbg!(&pos);
-    dbg!(_outer_perft(&mut pos, 4));
-}

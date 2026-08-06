@@ -48,7 +48,7 @@ impl Game{
         if let Some(book_move) = self.opening_move() {
             let mut result = SearchResult::default();
             result.best_move = Some(book_move);
-            println!("opening book move: {book_move}");
+
             return result;
         }
         self.engine.think_iterative_deepening(&mut self.pos, limits)
@@ -84,5 +84,13 @@ impl Game{
             return Ok(());
         }
         Err("Unable to sync the moves as they are somehow incompatable")
+    }
+
+    pub fn set_position(&mut self, fen: Option<String>, moves: &MoveList,) -> Result<(), &'static str> {
+        // Reset the board, but preserve the Engine and its allocated TT.
+        self.pos = Position::new(fen);
+        self.moves_played = MoveList::new_empty();
+
+        self.sync_moves(moves)
     }
 }

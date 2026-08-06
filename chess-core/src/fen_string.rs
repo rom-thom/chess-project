@@ -1,5 +1,5 @@
 use crate::position::{Position, Color, Snapshot};
-use crate::zobrist::ZobristKey;
+use crate::zobrist::{Zobrist, ZobristKey, zob};
 
 use std::str::FromStr;
 
@@ -115,8 +115,10 @@ impl Position{
 
             }
         }
-        // ! generate a correct zobrist key instead of hardcoding a 0
-        Position { current: Snapshot{bitboards: board, side_to_move: side_to_move, castling: castling, en_passant: en_passant, halfmove_clock: halfmove_clock, fullmove_number: fullmove_clock, zobrist_key: ZobristKey::default() }, history: vec![]}
+        let mut snap_exep_zobrist = Snapshot{bitboards: board, side_to_move: side_to_move, castling: castling, en_passant: en_passant, halfmove_clock: halfmove_clock, fullmove_number: fullmove_clock, zobrist_key: ZobristKey::default()};
+
+        snap_exep_zobrist.zobrist_key = zob().compute(&snap_exep_zobrist);
+        Position { current: snap_exep_zobrist, history: vec![]}
     }
 
 

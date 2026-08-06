@@ -160,7 +160,7 @@ impl Zobrist {
 
 static ZOBRIST: OnceLock<Zobrist> = OnceLock::new();
 
-fn zob() -> &'static Zobrist { // ?? If i ever want to use zob() anyware else change this to pub fn ...
+pub fn zob() -> &'static Zobrist {
     ZOBRIST.get_or_init(|| Zobrist::new(0x9E3770B9AF4A7C15))
 }
 
