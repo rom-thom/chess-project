@@ -1,12 +1,12 @@
 use chess_core::{movegen::MoveGen, moves::{BitMove, MoveList}, position::{Color, Position}};
 use rand::RngExt;
-use std::collections::HashMap;
+use std::{collections::HashMap, vec};
 
 
 
 
 pub struct OpeningBook{
-    book: HashMap<u64, Vec<(BitMove, u32)>>
+    book: HashMap<u64, Vec<(BitMove, u32)>>,
 }
 
 impl OpeningBook{

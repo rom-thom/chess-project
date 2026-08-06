@@ -11,8 +11,8 @@ pub struct Game{
 
 
 impl Game{
-    pub fn new(fen_string:Option<String>,  tt_size: usize)->Self{
-        Self { pos: Position::new(fen_string), engine: Engine::new(tt_size), moves_played: MoveList::new_empty()}
+    pub fn new(fen_string:Option<String>,  tt_size: usize, opening_book_enabled: bool)->Self{
+        Self { pos: Position::new(fen_string), engine: Engine::new(tt_size, opening_book_enabled), moves_played: MoveList::new_empty()}
     }
 
     pub fn make_move(&mut self, mov: &BitMove){
@@ -44,12 +44,14 @@ impl Game{
         book.pick(&self.pos, &mut rng)
     }
 
-    pub fn think(&mut self, mut limits: &mut SearchLimits) -> SearchResult{
-        if let Some(book_move) = self.opening_move() {
-            let mut result = SearchResult::default();
-            result.best_move = Some(book_move);
+    pub fn think(&mut self, limits: &mut SearchLimits) -> SearchResult{
+        if self.engine.opening_book_enabled{
+            if let Some(book_move) = self.opening_move() {
+                let mut result = SearchResult::default();
+                result.best_move = Some(book_move);
 
-            return result;
+                return result;
+            }
         }
         self.engine.think_iterative_deepening(&mut self.pos, limits)
     }

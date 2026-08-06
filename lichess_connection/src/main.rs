@@ -18,7 +18,8 @@ use crate::communication::{ComOutput, com_loop, install_panic_log, send_move};
 
 fn main() {
     let tt_size = 524288; // 2**19
-    let mut game = Game::new(None, tt_size);
+    let opening_book_enabled = false;
+    let mut game = Game::new(None, tt_size, opening_book_enabled);
 
     let mut time_usage = TimeUsage::new(None, None, None, None, None, None);
 
@@ -35,7 +36,7 @@ fn main() {
         let com_output = com_loop(line, &mut logger, &mut sender);
         match com_output {
             ComOutput::Nada => {},
-            ComOutput::NewGame => {game = Game::new(None, tt_size)},
+            ComOutput::NewGame => {game = Game::new(None, tt_size, opening_book_enabled)},
             ComOutput::Quit => {break;},
 
             ComOutput::Position(pos_params) => {game.set_position(pos_params.fen, &pos_params.moves).expect("Coundn't sync the move history with the game position for some reason");}

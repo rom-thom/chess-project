@@ -1,8 +1,7 @@
-use std::time;
 
 use chess_core::position::Position;
 
-use crate::{constants::score, debug_file, eval::Evaluator, opening, serch::{move_ordering::MoveOrderer, serch_structs::{SearchLimits, SearchResult}}, stored_moves::trans_pos_table::TT};
+use crate::{constants::score, debug_file, eval::Evaluator, serch::{move_ordering::MoveOrderer, serch_structs::{SearchLimits, SearchResult}}, stored_moves::trans_pos_table::TT};
 
 
 
@@ -11,13 +10,15 @@ use crate::{constants::score, debug_file, eval::Evaluator, opening, serch::{move
 pub struct Engine{
     pub tt: TT,
     pub eval: Evaluator,
-    pub move_orderer: MoveOrderer
+    pub move_orderer: MoveOrderer,
+
+    pub opening_book_enabled: bool,
 }
 
 
 impl Engine{
-    pub fn new(tt_size: usize) -> Self{
-        Self { tt: TT::new(tt_size), eval: Evaluator::default(), move_orderer: MoveOrderer::default()}
+    pub fn new(tt_size: usize, opening_book_enabled: bool) -> Self{
+        Self { tt: TT::new(tt_size), eval: Evaluator::default(), move_orderer: MoveOrderer::default(), opening_book_enabled}
     }
 
 
@@ -88,7 +89,7 @@ impl Engine{
 fn test_engine(){
     let mut pos = Position::new(Some("4b2k/6pr/8/q3b3/1p5N/3B4/p3K1Q1/8 w - - 0 1".to_string()));
     dbg!(&pos);
-    let mut engine = Engine::new(524288);
+    let mut engine = Engine::new(524288, false);
     let mut limits = SearchLimits::new(Some(8), None, None, None);
     dbg!(engine.think_iterative_deepening(&mut pos, &mut limits));
 
