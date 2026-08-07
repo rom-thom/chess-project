@@ -1,8 +1,6 @@
 
 
-use chess_core::position::{Color};
-
-use crate::debug_file::log_dbg;
+use chess_core::{position::Color};
 
 
 
@@ -70,7 +68,6 @@ impl TimeUsage{
         let my_time = match self.my_time_ms(my_color) {
             Some(t) => t,
             None => {
-                log_dbg("chess_log/search_scores.log", "my_time_ms()_returned None", None::<&String>, file!(), line!()).expect("Oh no it feiled");
                 return None
         }
         };

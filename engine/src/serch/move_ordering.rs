@@ -65,7 +65,6 @@ impl MoveOrderer{
     }
 
 
-
     pub fn score_move(&self, pos: &Position, mov: BitMove, tt_move: Option<BitMove>, ply: i32) -> i32{
         if Some(mov) == tt_move {
             return score::TT_SCORE;

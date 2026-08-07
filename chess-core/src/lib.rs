@@ -11,6 +11,7 @@ pub mod movegen;
 pub mod test_core;
 pub mod move_convertion;
 pub mod movegen_per_piece;
+pub mod debug_file;
 pub mod zobrist;
 #[cfg(test)]
 mod tests {

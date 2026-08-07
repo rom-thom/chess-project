@@ -17,8 +17,8 @@ use std::io::BufWriter;
 
 
 
-// TODO: Remove the coment telling it not to panic at --release mode
-// #[cfg(debug_assertions)]
+
+#[cfg(feature = "log")]
 pub fn install_panic_log(path: &str) {
     use std::panic;
 
@@ -31,10 +31,10 @@ pub fn install_panic_log(path: &str) {
         }
     }));
 }
-// #[cfg(not(debug_assertions))]
-// pub fn install_panic_log(_path: &str) {
-//     // no-op in release
-// }
+#[cfg(not(feature = "log"))]
+pub fn install_panic_log(_path: &str) {
+    // no-op in release
+}
 
 
 

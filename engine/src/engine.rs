@@ -1,7 +1,7 @@
 
-use chess_core::position::Position;
+use chess_core::{position::Position, log};
 
-use crate::{constants::score, debug_file, eval::Evaluator, serch::{move_ordering::MoveOrderer, serch_structs::{SearchLimits, SearchResult}}, stored_moves::trans_pos_table::TT};
+use crate::{constants::score, eval::Evaluator, serch::{move_ordering::MoveOrderer, serch_structs::{SearchLimits, SearchResult}}, stored_moves::trans_pos_table::TT};
 
 
 
@@ -40,14 +40,14 @@ impl Engine{
         for depth in 0..=max_depth {
             let temp_result = self.negamax(&mut pos, depth, &mut limits);
 
-            if temp_result.score.abs() >= score::MATE_THRESHOLD{
-                debug_file::log_dbg("chess_log/search_scores.log", &format!("depth: {depth}, aborted = {}, mate distance {}", temp_result.aborted, (score::MATE - temp_result.score.abs()) * temp_result.score.signum() as i32), Some(&(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string()))), file!(), line!()).expect("dbg funkakje");
+            if temp_result.aborted{
+                log!(format!("depth: {depth}, Aborted"), path="search_scores.log").unwrap();
             }
-            else if temp_result.aborted{
-                debug_file::log_dbg("chess_log/search_scores.log", &format!("depth: {depth}, Aborted"), None::<&String>, file!(), line!()).expect("dbg funkakje");
-            }
+            else if temp_result.score.abs() >= score::MATE_THRESHOLD{
+                log!(format!("depth: {depth}, mate distance {}, move: {}", (score::MATE - temp_result.score.abs()) * temp_result.score.signum() as i32, &(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string()))), path="search_scores.log").unwrap();
+            }  
             else{
-                debug_file::log_dbg("chess_log/search_scores.log", &format!("depth: {depth}, eval = {}", temp_result.score), Some(&(temp_result.best_move.map(|m| m.to_string()).unwrap_or_else(|| "None".to_string()))), file!(), line!()).expect("dbg funkakje");
+                log!(format!("depth: {depth}, eval = {}, move: {}", temp_result.score, temp_result.best_move.expect("This should be a move as it wasnt aborted").to_string()), path="search_scores.log").unwrap();
             }
 
 

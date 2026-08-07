@@ -3,8 +3,8 @@ use std::io::{self, BufRead};
 pub mod game;
 pub mod communication;
 
-
-use engine::{debug_file::log_dbg, serch::serch_structs::SearchLimits, time_spending::TimeUsage};
+use chess_core::{log};
+use engine::{serch::serch_structs::SearchLimits, time_spending::TimeUsage};
 use game::Game;
 
 
@@ -19,6 +19,7 @@ use crate::communication::{ComOutput, com_loop, install_panic_log, send_move};
 fn main() {
     let tt_size = 524288; // 2**19
     let opening_book_enabled = false;
+
     let mut game = Game::new(None, tt_size, opening_book_enabled);
 
     let mut time_usage = TimeUsage::new(None, None, None, None, None, None);
@@ -54,7 +55,7 @@ fn main() {
 
                 let mut limits = SearchLimits::new(max_depth, max_time_ms, go_params.nodes, None);
 
-                log_dbg("chess_log/search_scores.log", "Time to use: ", Some(&limits.max_time_ms.unwrap_or(67)), file!(), line!()).unwrap();
+                if let Some(time_to_spend) = &limits.max_time_ms{log!(format!("Time to use: {}", time_to_spend)).unwrap();}
                 let thinking_result = game.think(&mut limits);
                 let best_move = thinking_result.best_move;
                 send_move(best_move, &mut logger, &mut sender);

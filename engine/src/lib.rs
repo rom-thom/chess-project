@@ -5,7 +5,6 @@ pub mod eval;
 pub mod serch;
 pub mod stored_moves;
 pub mod engine;
-pub mod debug_file;
 pub mod time_spending;
 
 pub mod opening;
