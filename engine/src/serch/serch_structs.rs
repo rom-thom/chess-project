@@ -1,4 +1,4 @@
-use std::{sync::atomic::{self, AtomicBool}, time::Instant};
+use std::{sync::{Arc, atomic::{self, AtomicBool, Ordering}}, time::Instant};
 
 use chess_core::moves::{BitMove, MovePath};
 
@@ -22,7 +22,7 @@ impl SearchResult{
 }
 
 pub struct SearchLimits{
-    stop: AtomicBool,
+    stop: Arc<AtomicBool>,
     start_time: Instant,
     pub max_depth: Option<usize>,
     pub max_time_ms: Option<u64>,
@@ -39,10 +39,11 @@ impl SearchLimits{
         max_time_ms: Option<u64>,
         max_nodes: Option<u64>,
         nodes_to_check: Option<usize>,
+        stopflag: Arc<AtomicBool>,
     ) -> Self {
         let nodes_to_check = nodes_to_check.unwrap_or(1024);
         Self {
-            stop: AtomicBool::new(false),
+            stop: stopflag,
             start_time: Instant::now(),
             max_depth,
             max_time_ms,
@@ -52,13 +53,17 @@ impl SearchLimits{
         }
     }
 
+    pub fn reset_stop(&mut self){
+        self.stop.store(false, Ordering::Relaxed);
+    }
+
     pub fn start_new_search(&mut self){
         self.start_time = Instant::now();
         self.node_count = 0;
     }
 
     pub fn should_stop(&self) -> bool{
-        if self.stop.load(std::sync::atomic::Ordering::Relaxed){
+        if self.stop.load(Ordering::Relaxed){
             return true;
         }
         if let Some(time_limit) = self.max_time_ms {
@@ -82,7 +87,7 @@ impl SearchLimits{
         if let Some(max_nodes) = self.max_nodes {
             if self.node_count >= max_nodes as usize{
                 return true;
-            }
+            }   
         }
 
         if self.node_count % self.nodes_to_check == 0{

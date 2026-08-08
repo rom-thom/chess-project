@@ -1,3 +1,5 @@
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+
 use chess_core::{moves::{BitMove, MoveList}, position::{Color, Position}};
 use engine::{engine::Engine, serch::serch_structs::{SearchLimits, SearchResult}, opening::opening::{OpeningBook, WHITE_BOOK, BLACK_BOOK}, eval::evaluator::Evaluator};
 
@@ -7,6 +9,7 @@ pub struct Game{
     engine: Engine,
 
     moves_played:  MoveList,
+
 }
 
 
@@ -86,4 +89,6 @@ impl Game{
 
         self.sync_moves(moves)
     }
+
+
 }

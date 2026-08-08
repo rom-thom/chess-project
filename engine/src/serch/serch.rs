@@ -1,4 +1,4 @@
-use std::i32;
+use std::{i32, sync::{Arc, atomic::AtomicBool}};
 
 use chess_core::{movegen::{self, MoveGen}, moves::{BitMove, Move, MoveList, MovePath}, position::{Color, Position}};
 use crate::{engine::Engine, constants::score, serch::{move_ordering::MoveOrderer, serch_structs::{SearchLimits, SearchResult}}, stored_moves::trans_pos_table::Bound};
@@ -232,6 +232,6 @@ fn test_serch(){
     let mut pos = Position::new(Some("7k/5bpr/4R3/q3b3/1p5N/3B4/p3K1Q1/8 w - - 0 1".to_string()));
     dbg!(&pos);
     let mut engine = Engine::new(524288, false);
-    dbg!(engine.negamax(&mut pos, 9, &mut SearchLimits::new(None, None, None, None)));
+    dbg!(engine.negamax(&mut pos, 9, &mut SearchLimits::new(None, None, None, None, Arc::new(AtomicBool::new(false)))));
 
 }

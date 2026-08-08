@@ -8,7 +8,7 @@ use std::io::{self, BufRead, Write};
 
 
 use chess_core::moves::{BitMove, MoveList};
-use chess_core::{movegen::MoveGen, moves, position::Position};
+use chess_core::{movegen::MoveGen, moves, position::Position, log};
 use engine::{engine::Engine, serch::serch_structs::SearchLimits};
 use crate::Game;
 
@@ -32,20 +32,12 @@ pub fn install_panic_log(path: &str) {
     }));
 }
 #[cfg(not(feature = "log"))]
-pub fn install_panic_log(_path: &str) {
-    // no-op in release
-}
+pub fn install_panic_log(_path: &str) {}
 
 
 
-
-fn log_line<W: Write>(logger: &mut W, line: &str){
-    writeln!(logger, "{line}").ok();
-    logger.flush().ok(); 
-}
-fn log_and_send<W: Write>(logger: &mut W, sender: &mut io::Stdout, line: &str){
-    writeln!(logger, "Sendt: {line}").ok();
-    logger.flush().ok(); 
+fn log_and_send(sender: &mut io::Stdout, line: &str){
+    log!(format!("Sendt: {line}"), path = "lichess_log.txt").expect("Logger failed");
     writeln!(sender, "{line}").expect(&format!("Couldn't send line {line}"));
     sender.flush().ok();
 }
@@ -53,29 +45,30 @@ fn log_and_send<W: Write>(logger: &mut W, sender: &mut io::Stdout, line: &str){
 
 
 
-pub fn com_loop<W: Write>(line: String, mut logger: &mut W, mut sender: &mut io::Stdout)->ComOutput{
+pub fn com_loop(line: String, mut sender: &mut io::Stdout)->ComOutput{
     let cmd = line.trim();
-    log_line(&mut logger, &format!("recieved: {cmd}"));
+    log!(format!("recieved: {cmd}"), path = "lichess_log.txt").expect("logger failed you");
 
     if cmd == "uci" {
-        log_and_send(&mut logger, &mut sender, "id name rust_bot_2");
-        log_and_send(&mut logger, &mut sender, "id author Thomas");
-        log_and_send(&mut logger, &mut sender, "uciok");
+        log_and_send(&mut sender, "id name rust_bot_2");
+        log_and_send(&mut sender, "id author Thomas");
+        log_and_send(&mut sender, "uciok");
         return ComOutput::Nada
 
     } else if cmd == "isready" {
-        log_and_send(&mut logger, &mut sender, "readyok");
+        log_and_send(&mut sender, "readyok");
         return ComOutput::Nada;
     } else if cmd == "ucinewgame" {
         return ComOutput::NewGame
     } else if cmd == "quit" {
         return ComOutput::Quit
-
+    } else if cmd == "stop"{
+        return ComOutput::Stop
     } else if cmd.starts_with("position ") {
         match parse_position(cmd) {
             Ok(position) => return ComOutput::Position(position),
             Err(error) => {
-                log_and_send(&mut logger, &mut sender, &format!("info string Invalid position command: {error}"),);
+                log_and_send(&mut sender, &format!("info string Invalid position command: {error}"),);
                 return ComOutput::Nada;
             }
         }
@@ -86,12 +79,12 @@ pub fn com_loop<W: Write>(line: String, mut logger: &mut W, mut sender: &mut io:
     ComOutput::Nada
 }
 
-pub fn send_move<W: Write>(mv: Option<BitMove>, mut logger: &mut W, mut sender: &mut io::Stdout){
+pub fn send_move(mv: Option<BitMove>, mut sender: &mut io::Stdout){
     if let Some(mv) = mv {
-        log_and_send(&mut logger, &mut sender, &format!("bestmove {}", mv));
+        log_and_send(&mut sender, &format!("bestmove {}", mv));
 
     } else {
-        log_and_send(&mut logger, &mut sender, &format!("bestmove 0000"));
+        log_and_send(&mut sender, &format!("bestmove 0000"));
         }
     }
 
@@ -101,7 +94,8 @@ pub enum ComOutput{
     NewGame,
     Quit,
     Position(PositionParams),
-    Go(GoParams)
+    Go(GoParams),
+    Stop,
 }
 
 
@@ -214,6 +208,12 @@ fn parse_position(cmd: &str)-> Result<PositionParams, String>{
 }
 
 
+pub enum SearchCommand{
+    NewGame,
+    Position(PositionParams),
+    Go(GoParams),
+    Quit
+}
 
 
 
