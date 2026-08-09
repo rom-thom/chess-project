@@ -11,13 +11,13 @@ pub struct SearchResult {
     pub score: i32,
     pub pv: MovePath,   // starting with best_move and as long as posible. Not always to the end of the serch
     pub depth: usize,
-    // pub nodes: u64, Should maby have this for debuging but i cant be bathered
+    pub nodes: u64,
     pub aborted: bool,
 }
 
 impl SearchResult{
     pub fn abort() -> Self{
-        Self { best_move: None, score: 0, pv: MovePath::new_empty(), depth: 0, aborted: true }
+        Self { best_move: None, score: 0, pv: MovePath::new_empty(), depth: 0, nodes: 0, aborted: true }
     }
 }
 
@@ -53,6 +53,16 @@ impl SearchLimits{
         }
     }
 
+    pub fn time_elapsed_ms(&self) -> u128 {
+        self.start_time.elapsed().as_millis()
+    }
+
+    #[inline]
+    pub fn get_node_count(&self) -> u64{
+        self.node_count as u64
+    }
+
+    #[inline]
     pub fn reset_stop(&mut self){
         self.stop.store(false, Ordering::Relaxed);
     }
@@ -62,10 +72,8 @@ impl SearchLimits{
         self.node_count = 0;
     }
 
+    // Executed rarely
     pub fn should_stop(&self) -> bool{
-        if self.stop.load(Ordering::Relaxed){
-            return true;
-        }
         if let Some(time_limit) = self.max_time_ms {
             if self.start_time.elapsed() >= std::time::Duration::from_millis(time_limit as u64){
                 return true;
@@ -80,8 +88,11 @@ impl SearchLimits{
         false
     }
 
-    pub fn check_stop(&mut self) -> bool{
+    // Executed every node
+    pub fn visit_node_and_check_stop(&mut self) -> bool{
         self.node_count += 1;
+        
+        if self.stop.load(Ordering::Relaxed){return true;}
 
         // Node limits must be checked on every node. Sorry speed, thats the rule
         if let Some(max_nodes) = self.max_nodes {

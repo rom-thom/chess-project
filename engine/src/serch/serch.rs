@@ -20,7 +20,7 @@ impl Engine{
         serch_depth: usize,
         mut search_limit: &mut SearchLimits,
     ) -> SearchResult {
-        if serch_depth != 0 && search_limit.check_stop(){
+        if serch_depth != 0 && search_limit.visit_node_and_check_stop(){
             return SearchResult::abort();
         }
 
@@ -34,13 +34,13 @@ impl Engine{
 
         if legal_moves.size() == 0{
             if pos.in_check(pos.current.side_to_move){ // This means mate i think
-                return SearchResult { best_move, score: -score::MATE, pv:MovePath::new_empty(), depth: 0, aborted: false }
+                return SearchResult { best_move, score: -score::MATE, pv:MovePath::new_empty(), depth: 0, nodes: 0, aborted: false }
             }
-            return SearchResult { best_move, score: 0, pv:MovePath::new_empty(), depth: 0, aborted: false }
+            return SearchResult { best_move, score: 0, pv:MovePath::new_empty(), depth: 0, nodes: 0, aborted: false }
         }
 
         if serch_depth == 0{
-            return SearchResult {score: self.eval.evaluate(pos), depth: 0, best_move: Some(*legal_moves.get(0).expect("there should be a legal move as i just checked wether it was empty")), pv: MovePath::new_empty(), aborted: false,};
+            return SearchResult {score: self.eval.evaluate(pos), depth: 0, best_move: Some(*legal_moves.get(0).expect("there should be a legal move as i just checked wether it was empty")), pv: MovePath::new_empty(), nodes: 0, aborted: false,};
         }
         
         let tt_result = self.tt.probe(pos.zobrist_key(), serch_depth as i8, alpha, beta,ply, false);
@@ -124,6 +124,7 @@ impl Engine{
             depth: serch_depth,
             best_move,
             pv: MovePath::new_empty(),
+            nodes: search_limit.get_node_count(),
             aborted: false,
         }
     }
@@ -137,7 +138,7 @@ impl Engine{
         
         if self.eval.is_threefold(pos) { return NegamaxHelperReturn::Score(0); }
         if pos.current.halfmove_clock >= 100{ return NegamaxHelperReturn::Score(0); }
-        if search_limit.check_stop(){ return NegamaxHelperReturn::Abort }
+        if search_limit.visit_node_and_check_stop(){ return NegamaxHelperReturn::Abort }
         if serch_depth == 0{ return self.q_search(pos, search_limit, alpha, beta, ply); }
 
 

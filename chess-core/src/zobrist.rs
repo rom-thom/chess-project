@@ -144,9 +144,9 @@ impl Zobrist {
         key ^= self.castle[cr];
 
         if let Some(ep_sq) = snapshot.en_passant {
-            // TODO make it check wether the EP square is capturable or not, and if it isn't then we can ignore this part
-            // if snapshot.ep_capture_is_legalish(ep_sq) {// <- implement (cheap check)
-            key ^= self.ep_file[ep_sq.col() as usize];
+            if snapshot.ep_capture_is_legal(ep_sq) {// <- implement (cheap check)
+                key ^= self.ep_file[ep_sq.col() as usize];
+            }
             
         }
 

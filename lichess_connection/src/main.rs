@@ -10,9 +10,6 @@ use engine::{serch::serch_structs::SearchLimits, time_spending::TimeUsage};
 use game::Game;
 
 
-use std::fs; // For printing the prosess to a fil
-use std::io::BufWriter;
-
 use crate::communication::{ComOutput, SearchCommand, com_loop, install_panic_log, send_move};
 
 
@@ -31,7 +28,6 @@ fn main() {
     let game_thread = thread::spawn(move||{
         let mut game = Game::new(None, tt_size, opening_book_enabled);
         let mut time_usage = TimeUsage::new(None, None, None, None, None, None);
-        let mut search_sender = io::stdout();
         
         while let Ok(command) = game_thred_rx.recv() {
             match command {
@@ -56,7 +52,8 @@ fn main() {
                     if let Some(time_to_spend) = &limits.max_time_ms{log!(format!("Time to use: {}", time_to_spend)).unwrap();}
                     let thinking_result = game.think(&mut limits); 
                     let best_move = thinking_result.best_move;
-                    send_move(best_move, &mut search_sender);
+                    println!( "info depth {} score cp {} nodes {} time {}", thinking_result.depth, thinking_result.score, thinking_result.nodes, limits.time_elapsed_ms());
+                    send_move(best_move);
                 },
                 SearchCommand::Quit => { break; },
             }
@@ -65,14 +62,13 @@ fn main() {
 
 
     let stdin = io::stdin();
-    let mut sender = io::stdout();
     install_panic_log("rust_bot_panic.log"); // Make it print the panic messages to a tmp file
 
-    for line in stdin.lock().lines() { // When it doesnt send something this kinda just whates fro the next line to be sendt
+    for line in stdin.lock().lines() { // When it doesn't send something this kinda just whates fro the next line to be sendt
         
         let Ok(line) = line else { break };
 
-        let com_output = com_loop(line, &mut sender);
+        let com_output = com_loop(line);
         match com_output {
             ComOutput::Nada => {},
             ComOutput::NewGame => {game_thred_tx.send(SearchCommand::NewGame).expect("The game thred should always be running")},

@@ -80,6 +80,17 @@ pub struct Snapshot {
 
 
 
+impl Snapshot {
+    pub fn ep_capture_is_legal(&self, ep_sq: Square)->bool{
+        
+        // !!! This must be made before the baseline engine 
+        // TODO make it check wether the EP square is capturable or not, and if it isn't then we can ignore this part
+        // ??? Do this
+
+        true
+    }
+
+}
 
 
 

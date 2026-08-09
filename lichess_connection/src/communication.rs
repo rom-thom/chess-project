@@ -36,27 +36,26 @@ pub fn install_panic_log(_path: &str) {}
 
 
 
-fn log_and_send(sender: &mut io::Stdout, line: &str){
+fn log_and_send(line: &str){
     log!(format!("Sendt: {line}"), path = "lichess_log.txt").expect("Logger failed");
-    writeln!(sender, "{line}").expect(&format!("Couldn't send line {line}"));
-    sender.flush().ok();
+    println!("{line}");
 }
 
 
 
 
-pub fn com_loop(line: String, mut sender: &mut io::Stdout)->ComOutput{
+pub fn com_loop(line: String)->ComOutput{
     let cmd = line.trim();
     log!(format!("recieved: {cmd}"), path = "lichess_log.txt").expect("logger failed you");
 
     if cmd == "uci" {
-        log_and_send(&mut sender, "id name rust_bot_2");
-        log_and_send(&mut sender, "id author Thomas");
-        log_and_send(&mut sender, "uciok");
+        log_and_send("id name rust_bot_2");
+        log_and_send("id author Thomas");
+        log_and_send("uciok");
         return ComOutput::Nada
 
     } else if cmd == "isready" {
-        log_and_send(&mut sender, "readyok");
+        log_and_send("readyok");
         return ComOutput::Nada;
     } else if cmd == "ucinewgame" {
         return ComOutput::NewGame
@@ -68,7 +67,7 @@ pub fn com_loop(line: String, mut sender: &mut io::Stdout)->ComOutput{
         match parse_position(cmd) {
             Ok(position) => return ComOutput::Position(position),
             Err(error) => {
-                log_and_send(&mut sender, &format!("info string Invalid position command: {error}"),);
+                log_and_send(&format!("info string Invalid position command: {error}"),);
                 return ComOutput::Nada;
             }
         }
@@ -79,12 +78,12 @@ pub fn com_loop(line: String, mut sender: &mut io::Stdout)->ComOutput{
     ComOutput::Nada
 }
 
-pub fn send_move(mv: Option<BitMove>, mut sender: &mut io::Stdout){
+pub fn send_move(mv: Option<BitMove>){
     if let Some(mv) = mv {
-        log_and_send(&mut sender, &format!("bestmove {}", mv));
+        log_and_send(&format!("bestmove {}", mv));
 
     } else {
-        log_and_send(&mut sender, &format!("bestmove 0000"));
+        log_and_send(&format!("bestmove 0000"));
         }
     }
 

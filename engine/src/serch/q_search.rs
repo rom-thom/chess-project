@@ -23,7 +23,7 @@ impl Engine{
         
         if self.eval.is_threefold(pos) { return NegamaxHelperReturn::Score(0); }
         if pos.current.halfmove_clock >= 100{ return NegamaxHelperReturn::Score(0); }
-        if search_limit.check_stop(){ return NegamaxHelperReturn::Abort }
+        if search_limit.visit_node_and_check_stop(){ return NegamaxHelperReturn::Abort }
 
 
         // alpha is pased down as -beta and vise versa, and we only ever change the alpha as we just change what we can improve ourselves (we cant change what the opponent else where can do) I think i just had a stroke writing that
@@ -52,24 +52,18 @@ impl Engine{
 
         let mut best_score = if in_check {-score::INF} 
                                   else {
-                                        let stand_pat = self.eval.evaluate(pos);
+                                        let stand_by = self.eval.evaluate(pos);
 
-                                        if stand_pat >= beta {
-                                            self.tt.store(
-                                                pos.zobrist_key(),
-                                                0,
-                                                stand_pat,
-                                                Bound::Lower,
-                                                None,
-                                                ply,
-                                                true,
-                                            );
+                                        if stand_by >= beta {
+                                            if !MoveGen::has_legal_move(pos) {return NegamaxHelperReturn::Score(0);}
 
-                                            return NegamaxHelperReturn::Score(stand_pat);
+                                            self.tt.store( pos.zobrist_key(), 0, stand_by, Bound::Lower, None, ply, true,);
+
+                                            return NegamaxHelperReturn::Score(stand_by);
                                         }
 
-                                        local_alpha = local_alpha.max(stand_pat);
-                                        stand_pat
+                                        local_alpha = local_alpha.max(stand_by);
+                                        stand_by
                                     };
 
 
