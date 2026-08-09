@@ -17,6 +17,28 @@ pub struct MoveGen; // Just like a namespace for move generation
 impl MoveGen {
 
     #[inline]
+    pub fn has_legal_move(mut pos: &mut Position)->bool{
+        let color = pos.current.side_to_move;
+        let mut move_list = MoveList::new_empty();
+        Self::generate_group_pawn_moves(pos, color, &mut move_list);
+        for m in move_list.iter(){
+            if !Self::makes_self_check(&mut pos, *m){
+                return true;
+            }
+        }
+        for p in [Piece::King, Piece::Rook, Piece::Bishop, Piece::Queen, Piece::Knight]{
+            move_list.clear();
+            Self::generate_normal_piece_moves(pos, p, color, &mut move_list);
+            for m in move_list.iter(){
+                if !Self::makes_self_check(&mut pos, *m){
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    #[inline]
     // Move generation (finds only the one for the color that currently is to move)
     // Finds all the pseudo legal (legal except for checks) moves in that position
     fn fill_pseudo_legal(pos: &Position, mut move_list: &mut MoveList){
@@ -33,7 +55,7 @@ impl MoveGen {
         MoveGen::generate_normal_piece_moves(pos, Piece::King, color, &mut move_list);
     }
 
-
+    #[inline]
     pub fn pseudo_legal(pos: &Position) -> MoveList{
         let mut pseudo_legal = MoveList::new_empty();
         MoveGen::fill_pseudo_legal(pos, &mut pseudo_legal);
@@ -467,10 +489,10 @@ mod test{
 #[test]
 fn test_attack(){
 
-    let mut position = Position::new(Some("8/6k1/4p3/8/2b3Q1/2Kr4/8/8 w - - 0 1".to_string()));
+    let mut position = Position::new(Some("7k/8/6Q1/4p3/4K3/8/8/8 b - - 1 62".to_string()));
     dbg!(&position);
 
-    let b = position.is_square_attacked(Square::F5, Color::Black);
+    let b = MoveGen::has_legal_move(&mut position);
     dbg!(b);
 
 }

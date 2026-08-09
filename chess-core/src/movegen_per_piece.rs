@@ -57,6 +57,7 @@ impl MoveGen{ // generates pseudo legal piece moves
         debug_assert!(piece != Piece::Pawn); // Pawns should not be accesable in this function (in release i assume it is taken care of)
 
         let mut piece_bitboard = pos.current.bitboards.get_bitboard(PieceIndex::from_piece(piece, color));
+
         let all_occ = pos.current.bitboards.all_occupancy;
         let opponent_occ = match color {
             Color::White => pos.current.bitboards.black_occupancy,
@@ -81,6 +82,7 @@ impl MoveGen{ // generates pseudo legal piece moves
     // Pawn move gens
 
     pub fn generate_group_pawn_moves(pos: &Position, color: Color, move_list: &mut MoveList){
+        
         let opponents_bb = match color {
             Color::Black => pos.current.bitboards.white_occupancy,
             Color::White => pos.current.bitboards.black_occupancy
@@ -90,6 +92,7 @@ impl MoveGen{ // generates pseudo legal piece moves
         let (mut single_push, mut double_push) = attack::pawn_groupe_straight_moves(pos, color);
         let mut left_attack = attack::pawn_groupe_attacks_left(pos, color) & (opponents_bb | en_passant_bb);
         let mut right_attack = attack::pawn_groupe_attacks_right(pos, color) & (opponents_bb | en_passant_bb);
+
 
         let end_row = match color {
                 Color::Black => 0,

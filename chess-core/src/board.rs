@@ -161,6 +161,11 @@ impl Bitboard {
         self.0.trailing_zeros()
     }
 
+    #[inline]
+    pub fn is_empty(&self)->bool{
+        self.0 == 0
+    }
+
 
     // Shift
     const EVERY_COL_BUT_A: u64 = 0xFE_FE_FE_FE_FE_FE_FE_FE; // To make shure it doesn't generate moves that leves the board and comes back on the other side

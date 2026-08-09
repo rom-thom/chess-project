@@ -113,8 +113,10 @@ impl Engine{
         if in_check && !legal_move_found {
             return NegamaxHelperReturn::Score(-score::MATE + ply);
         }
-        if !legal_move_found{ // No legal q_moves moves in the position => q serch out "mike drop" // TODO: Check for stalemate!!!!!!!!!!!!!!
-            return NegamaxHelperReturn::Score(local_alpha)
+        if !legal_move_found{ // No legal q_moves moves in the position => q serch out "mike drop" 
+        // return NegamaxHelperReturn::Score(local_alpha);
+            if MoveGen::has_legal_move(pos){ return NegamaxHelperReturn::Score(local_alpha) }
+            else{return NegamaxHelperReturn::Score(0)}
         }
 
 
@@ -122,7 +124,7 @@ impl Engine{
             else if best_score >= beta { Bound::Lower } 
             else{ Bound::Exact };
 
-        self.tt.store(pos.zobrist_key(), 0, best_score, bound, best_move, ply, true); // TODO: trans stuf here
+        self.tt.store(pos.zobrist_key(), 0, best_score, bound, best_move, ply, true);
 
         NegamaxHelperReturn::Score(local_alpha)
 
@@ -131,67 +133,4 @@ impl Engine{
 
 }
 
-
-
-
-// Qsearch checklist (in order) ✅
-
-// Abort check
-
-// If time is up / stop flag set → return Abort.
-
-// If side to move is in check
-
-// You must search evasion moves (king moves, blocks, captures).
-
-// In-check qsearch is basically “search one more ply (or more) until not in check”.
-
-// Still use alpha–beta.
-
-// Stand pat
-
-// Compute static eval: stand_pat = evaluate(pos).
-
-// This is the score if you “do nothing tactical”.
-
-// Beta cutoff using stand pat
-
-// If stand_pat >= beta → return beta (or stand_pat, but beta is common).
-
-// Raise alpha
-
-// If stand_pat > alpha → set alpha = stand_pat.
-
-// Generate q-moves only
-
-// Captures ✅
-
-// Promotions ✅ (include non-capture promotions too)
-
-// (Optional later) checks ✅
-
-// En passant counts as capture ✅
-
-// Order the q-moves
-
-// Simple first: MVV-LVA (most valuable victim / least valuable attacker)
-
-// Or: promotions first, then winning captures.
-
-// Loop through q-moves with alpha–beta
-// For each q-move:
-
-// Make move
-
-// Recurse qsearch with negamax bounds: score = -qsearch(-beta, -alpha)
-
-// Undo move
-
-// If score >= beta → return beta (cutoff)
-
-// If score > alpha → update alpha = score
-
-// Return alpha
-
-// When no more q-moves (or none improved alpha), return alpha.
 
