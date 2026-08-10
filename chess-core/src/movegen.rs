@@ -20,6 +20,8 @@ impl MoveGen {
     pub fn has_legal_move(mut pos: &mut Position)->bool{
         let color = pos.current.side_to_move;
         let mut move_list = MoveList::new_empty();
+        
+
         Self::generate_group_pawn_moves(pos, color, &mut move_list);
         for m in move_list.iter(){
             if !Self::makes_self_check(&mut pos, *m){

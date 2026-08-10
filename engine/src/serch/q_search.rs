@@ -108,7 +108,6 @@ impl Engine{
             return NegamaxHelperReturn::Score(-score::MATE + ply);
         }
         if !legal_move_found{ // No legal q_moves moves in the position => q serch out "mike drop" 
-        // return NegamaxHelperReturn::Score(local_alpha);
             if MoveGen::has_legal_move(pos){ return NegamaxHelperReturn::Score(local_alpha) }
             else{return NegamaxHelperReturn::Score(0)}
         }

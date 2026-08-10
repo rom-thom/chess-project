@@ -126,28 +126,27 @@ impl Zobrist {
 
 
 
-    pub fn compute(&self, snapshot: &Snapshot) -> ZobristKey {
+    pub fn compute(&self, pos: &mut Position) -> ZobristKey {
         let mut key: u64 = 0;
 
 
         for sq in 0..64 {
-            if let Some(p) = snapshot.bitboards.piece_on_square(Square::from_idx(sq).expect("this should have returned a square as i loop trough legal squares")) { // <- you implement this accessor
+            if let Some(p) = pos.current.bitboards.piece_on_square(Square::from_idx(sq).expect("this should have returned a square as i loop trough legal squares")) { // <- you implement this accessor
                 key ^= self.piece_sq[p.index()][sq as usize];
             }
         }
 
-        if snapshot.side_to_move == Color::Black {
+        if pos.current.side_to_move == Color::Black {
             key ^= self.side;
         }
 
-        let cr = snapshot.castling.rights as usize;
+        let cr = pos.current.castling.rights as usize;
         key ^= self.castle[cr];
 
-        if let Some(ep_sq) = snapshot.en_passant {
-            if snapshot.ep_capture_is_legal(ep_sq) {// <- implement (cheap check)
+        if let Some(ep_sq) = pos.current.en_passant {
+            if pos.ep_capture_is_legal(ep_sq) {// <- implement (cheap check)
                 key ^= self.ep_file[ep_sq.col() as usize];
             }
-            
         }
 
         ZobristKey(key)

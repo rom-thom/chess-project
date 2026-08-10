@@ -2,6 +2,8 @@ use std::ops::Not;
 use std::str::FromStr;
 
 use crate::board::{Bitboards, Bitboard};
+use crate::movegen::MoveGen;
+use crate::moves::MoveType::EnPassant;
 use crate::moves::{BitMove, Move, MoveList, MoveType};
 use crate::piece::{Piece, PieceIndex};
 use crate::square::{Square};
@@ -80,16 +82,35 @@ pub struct Snapshot {
 
 
 
-impl Snapshot {
-    pub fn ep_capture_is_legal(&self, ep_sq: Square)->bool{
-        
-        // !!! This must be made before the baseline engine 
-        // TODO make it check wether the EP square is capturable or not, and if it isn't then we can ignore this part
-        // ??? Do this
+impl Position {
 
-        true
+    pub fn ep_capture_is_legal(&mut self, ep_sq: Square) -> bool {
+        let (pawn, candidate_squares) = match self.current.side_to_move {
+            Color::White => (
+                PieceIndex::WhitePawn,
+                [ep_sq.down_left(), ep_sq.down_right()],
+            ),
+
+            Color::Black => (
+                PieceIndex::BlackPawn,
+                [ep_sq.upp_left(), ep_sq.upp_right()],
+            ),
+        };
+
+        for from_sq in candidate_squares.into_iter().flatten() {
+            if self.current.bitboards.piece_on_square(from_sq) != Some(pawn) {
+                continue;
+            }
+
+            let mv = BitMove::new( from_sq, ep_sq, true, MoveType::EnPassant);
+
+            if !MoveGen::makes_self_check(self, mv) {
+                return true;
+            }
+        }
+
+        false
     }
-
 }
 
 

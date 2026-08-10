@@ -101,7 +101,7 @@ pub enum ComOutput{
 #[derive(Debug)]
 pub struct PositionParams {
     pub fen: Option<String>,
-    pub moves: MoveList,
+    pub moves: Vec<BitMove>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -123,12 +123,12 @@ pub struct GoParams {
 
 
 
-fn parse_movelist(move_vect: Vec<String>, mut start_pos: Position)-> MoveList{
-    let mut move_list = MoveList::new_empty();
+fn parse_movelist(move_vect: Vec<String>, mut start_pos: Position)-> Vec<BitMove>{
+    let mut move_list = vec![];
 
     for mv in move_vect{
         let bit_move = MoveGen::stringmove_to_bitmove(&mut start_pos, &mv).expect(&format!("Move historyrecieved was incompatable with the start pos and its procedings. Couldnt make this a bitmove: {}", mv));
-        move_list.add(bit_move);
+        move_list.push(bit_move);
         start_pos.make_move(&bit_move);
     };
     move_list

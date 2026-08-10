@@ -116,8 +116,9 @@ impl Position{
             }
         }
         let mut snap_exep_zobrist = Snapshot{bitboards: board, side_to_move: side_to_move, castling: castling, en_passant: en_passant, halfmove_clock: halfmove_clock, fullmove_number: fullmove_clock, zobrist_key: ZobristKey::default()};
+        let mut temp_pos = Position{current: snap_exep_zobrist, history: Vec::new()};
 
-        snap_exep_zobrist.zobrist_key = zob().compute(&snap_exep_zobrist);
+        snap_exep_zobrist.zobrist_key = zob().compute(&mut temp_pos);
         Position { current: snap_exep_zobrist, history: vec![]}
     }
 
