@@ -144,9 +144,10 @@ impl Zobrist {
         key ^= self.castle[cr];
 
         if let Some(ep_sq) = pos.current.en_passant {
-            if pos.ep_capture_is_legal(ep_sq) {// <- implement (cheap check)
-                key ^= self.ep_file[ep_sq.col() as usize];
-            }
+            // if pos.ep_capture_is_legal(ep_sq) {// <- implement (cheap check)
+            //     key ^= self.ep_file[ep_sq.col() as usize];
+            // }
+            key ^= self.ep_file[ep_sq.col() as usize];
         }
 
         ZobristKey(key)

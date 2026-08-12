@@ -52,7 +52,7 @@ fn main() {
                     if let Some(time_to_spend) = &limits.max_time_ms{log!(format!("Time to use: {}", time_to_spend)).unwrap();}
                     let thinking_result = game.think(&mut limits); 
                     let best_move = thinking_result.best_move;
-                    println!( "info depth {} score cp {} nodes {} time {}", thinking_result.depth, thinking_result.score, thinking_result.nodes, limits.time_elapsed_ms());
+                    println!( "info depth {} score cp {} nodes {} time {}", thinking_result.depth, thinking_result.score, limits.get_node_count(), limits.time_elapsed_ms());
                     send_move(best_move);
                 },
                 SearchCommand::Quit => { break; },

@@ -227,7 +227,7 @@ impl Position{
         Flip side-to-move
         Update king square // TODO maybe for later
         Update bitboards / piece lists
-        Update hash (Zobrist)
+        Update Zobrist
         Push move history 
         Update Mailbox // TODO for later
     */
@@ -250,7 +250,7 @@ impl Position{
         
 
 
-        let captured_piece_square = if mov.is_capture(){ // Remove the captured piece and square //  TODO make tgis be A let captured = if (...){Some(captured piece)}
+        let captured_piece_square = if mov.is_capture(){ // Remove the captured piece and square //  TODO make this be A let captured = if (...){Some(captured piece)}
 
             if !mov.is_en_passant(){
 

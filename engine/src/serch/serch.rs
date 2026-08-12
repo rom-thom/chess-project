@@ -138,8 +138,8 @@ impl Engine{
         
         if self.eval.is_threefold(pos) { return NegamaxHelperReturn::Score(0); }
         if pos.current.halfmove_clock >= 100{ return NegamaxHelperReturn::Score(0); }
-        if search_limit.visit_node_and_check_stop(){ return NegamaxHelperReturn::Abort }
         if serch_depth == 0{ return self.q_search(pos, search_limit, alpha, beta, ply); }
+        if search_limit.visit_node_and_check_stop(){ return NegamaxHelperReturn::Abort }
 
 
 
